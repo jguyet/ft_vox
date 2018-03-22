@@ -110,7 +110,7 @@ public class Vox
 		
 		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
 			Keyboard.keyboard.handle(key, scancode, action, mods);
-			if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
+			if ((key == GLFW_KEY_ESCAPE || key == 290) && action == GLFW_RELEASE )
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
 		});
 		

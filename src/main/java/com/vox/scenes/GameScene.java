@@ -34,6 +34,7 @@ public class GameScene extends Scene {
 		this.camera = new Camera(new Vector3f(5.0f, 5.0f, 5.0f), new Vector3f(37,316,0));
 		this.camera.setProjection(45.0f, 1280.0f, 740.0f, 0.1f, 1000f);
 		this.camera.buildFPSProjection();
+		load_chunks(15);
 	}
 	
 	void								add_chunk(int number)
@@ -61,13 +62,13 @@ public class GameScene extends Scene {
 		}
 	}
 	
-	void								load_chunks()
+	void								load_chunks(int far)
 	{
 		int fx = (int)Math.floor((int)this.camera.transform.position.x / Chunk.SIZE_WIDTH);
 		int fz = (int)Math.floor((int)this.camera.transform.position.z / Chunk.SIZE_WIDTH);
 		for (int x = (fx - far_chunk); x < (fx + far_chunk); x++)
 		{
-			for (int z = (fz - far_chunk); z < (fz + far_chunk); z++)
+			for (int z = (fz - far); z < (fz + far); z++)
 			{
 				int cx = Chunk.SIZE_WIDTH * x;
 				int cz = Chunk.SIZE_WIDTH * z;
@@ -110,9 +111,9 @@ public class GameScene extends Scene {
 	public void draw() {
 		//System.out.println(camera.transform.rotation.y);
 		if (has_moved)
-			load_chunks();
-		if (fps > 60)
-			this.add_chunk(1);
+			load_chunks(10);
+		//if (fps > 60)
+		this.add_chunk(1);
 		this.move_camera();
 		this.camera.buildFPSProjection();
 		this._draw();
