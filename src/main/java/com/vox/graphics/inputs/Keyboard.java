@@ -20,6 +20,8 @@ public class Keyboard {
 	public void handle(int key, int scancode, int action, int mods)
 	{
 		//System.out.println("Key: " + key);
+		if (key > 300)
+			return ;
 		keypressed[key] = action == GLFW_PRESS || action == GLFW_REPEAT ? true : false;
 	}
 	

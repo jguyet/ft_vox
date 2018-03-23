@@ -21,8 +21,8 @@ public class Camera {
 	private float		fov;
 	private float		width;
 	private float		height;
-	private float		zNear;
-	private float		zFar;
+	public float		zNear;
+	public float		zFar;
 	
 	public Camera(Vector3f position, Vector3f rotation)
 	{

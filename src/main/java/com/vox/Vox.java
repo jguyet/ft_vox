@@ -30,7 +30,6 @@ import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_CURSOR;
 import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED;
 import static org.lwjgl.glfw.GLFW.glfwSetInputMode;
-import static org.lwjgl.glfw.GLFW.glfwSetCursorPos;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
@@ -63,10 +62,12 @@ public class Vox
 	public Scene	scene;
 	
 	public long	window;
+	public static boolean running;
 
 	public Vox()
 	{
-		this.screen = new Screen(1280, 740);
+		Vox.running = true;
+		this.screen = new Screen(1700, 1000);
 		this.scene = null;
 	}
 	
@@ -98,7 +99,7 @@ public class Vox
 		if ( window == NULL )
 			throw new RuntimeException("Failed to create the GLFW window");
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(0);
+		glfwSwapInterval(1);
 		glfwShowWindow(window);
 		GL.createCapabilities();
 	}
@@ -124,7 +125,7 @@ public class Vox
 	{
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glEnable(GL_DEPTH_TEST);
-		glClearColor(0.0f, 0.3f, 0.3f, 0.0f);
+		glClearColor(0.02f, 0.54f, 0.69f, 0.0f);
 		while (!glfwWindowShouldClose(window))
 		{
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -134,6 +135,7 @@ public class Vox
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
+		this.running = false;
 	}
 
 	public static void main(String[] args) {
@@ -143,7 +145,7 @@ public class Vox
 		Vox.vox.build_inputs();
 		System.out.println("LWJGL version: " + Version.getVersion());
 		System.out.println("OpenGL version: " + glGetString(GL_VERSION));
-		
+		Factory.load_textures();
 		Vox.vox.scene = new GameScene();
 		
 		Vox.vox.loop();
