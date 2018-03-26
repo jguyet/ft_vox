@@ -30,7 +30,7 @@ public class Chunk extends Component {
 
 	//public static Map<String, Chunk>	chunks = new HashMap<String, Chunk>();
 	
-	public static final int SIZE_STATIC_ARRAY = 10;
+	public static final int SIZE_STATIC_ARRAY = 40;
 	
 	public static final int SIZE_WIDTH = 16;
 	public static final int SIZE_HEIGHT = 16;
@@ -40,16 +40,16 @@ public class Chunk extends Component {
 	private int		vbo_uv;
 	private int		vbo_normals;
 	private int		vbo_colors;
-	private Shader	shader;
+	public static Shader	shader = null;
 	
-	private int vertex_location;
-	private int uv_location;
-	private int normal_location;
-	private int color_location;
-	private int projection_location;
-	private int view_location;
-	private int model_location;
-	private int[] texture_diffuse_location = new int[5];
+	public static int vertex_location;
+	public static int uv_location;
+	public static int normal_location;
+	public static int color_location;
+	public static int projection_location;
+	public static int view_location;
+	public static int model_location;
+	public static int[] texture_diffuse_location = new int[5];
 	
 	private static FloatBuffer[] vertexs_array = new FloatBuffer[SIZE_STATIC_ARRAY];
 	private static FloatBuffer[] uv_array = new FloatBuffer[SIZE_STATIC_ARRAY];
@@ -125,25 +125,8 @@ public class Chunk extends Component {
 	
 	public void build_arrays()
 	{	
-		
-//		float[] green_color = {
-//				0.54f, 0.29f, 0.03f,
-//				0.54f, 0.29f, 0.03f,
-//				0.54f, 0.29f, 0.03f,
-//				0.54f, 0.29f, 0.03f,
-//				0.54f, 0.29f, 0.03f,
-//				0.54f, 0.29f, 0.03f,
-//		};
-//		
-//		float[] top_color = {
-//				0.0f, 0.87f, 0.23f,
-//				0.0f, 0.87f, 0.23f,
-//				0.0f, 0.87f, 0.23f,
-//				0.0f, 0.87f, 0.23f,
-//				0.0f, 0.87f, 0.23f,
-//				0.0f, 0.87f, 0.23f,
-//		};
-		
+		Chunk.vertexs_array[buffer_index].clear();
+		Chunk.uv_array[buffer_index].clear();
 		for (Vector3f obj : blocks.values())
 		{
 			
@@ -194,80 +177,80 @@ public class Chunk extends Component {
 				uv_array[buffer_index].put(Factory.texture_side());
 			}
 		}
+		
+		Chunk.vertexs_array[buffer_index].limit(Chunk.vertexs_array[buffer_index].position());
+		Chunk.uv_array[buffer_index].limit(Chunk.uv_array[buffer_index].position());
+		vertexs_array[buffer_index].flip();
+		uv_array[buffer_index].flip();
 	}
 	
-	public void build_shader()
+	public static void build_shader()
 	{
-		this.shader = new Shader("assets/shaders/global.vert", "assets/shaders/global.frag");
-		this.vertex_location = glGetAttribLocation(this.shader.id, "a_v");
-		this.normal_location = glGetAttribLocation(this.shader.id, "a_n");
-		this.uv_location = glGetAttribLocation(this.shader.id, "a_uv");
-		this.color_location = glGetAttribLocation(this.shader.id, "a_color");
-		this.projection_location = glGetUniformLocation(this.shader.id, "P");
-		this.view_location = glGetUniformLocation(this.shader.id, "V");
-		this.model_location = glGetUniformLocation(this.shader.id, "M");
-		this.texture_diffuse_location[0] = glGetUniformLocation(this.shader.id, "u_texture_diffuse[0]");
-		this.texture_diffuse_location[1] = glGetUniformLocation(this.shader.id, "u_texture_diffuse[1]");
-		this.texture_diffuse_location[2] = glGetUniformLocation(this.shader.id, "u_texture_diffuse[2]");
+		if (shader != null)
+			return ;
+		shader = new Shader("assets/shaders/global.vert", "assets/shaders/global.frag");
+		vertex_location = glGetAttribLocation(shader.id, "a_v");
+		normal_location = glGetAttribLocation(shader.id, "a_n");
+		uv_location = glGetAttribLocation(shader.id, "a_uv");
+		color_location = glGetAttribLocation(shader.id, "a_color");
+		projection_location = glGetUniformLocation(shader.id, "P");
+		view_location = glGetUniformLocation(shader.id, "V");
+		model_location = glGetUniformLocation(shader.id, "M");
+		texture_diffuse_location[0] = glGetUniformLocation(shader.id, "u_texture_diffuse[0]");
+		texture_diffuse_location[1] = glGetUniformLocation(shader.id, "u_texture_diffuse[1]");
+		texture_diffuse_location[2] = glGetUniformLocation(shader.id, "u_texture_diffuse[2]");
 		//glBindFragDataLocation(this.shader.id, 0, "o_color");
 	}
 	
 	public void build_vao()
 	{	
-		build_shader();
+		//build_shader();
 		this.vao = glGenVertexArrays();
 		glBindVertexArray(this.vao);
-		Chunk.vertexs_array[buffer_index].limit(Chunk.vertexs_array[buffer_index].position());
-		Chunk.uv_array[buffer_index].limit(Chunk.uv_array[buffer_index].position());
 		//Chunk.normals_array.limit(Chunk.normals_array.position());
 		//Chunk.colors_array.limit(Chunk.colors_array.position());
-		
-		vertexs_array[buffer_index].flip();
 		//VERTEXS
 		vbo_vertexs = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_vertexs);
 		glBufferData(GL_ARRAY_BUFFER, vertexs_array[buffer_index], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(this.vertex_location);
-		glVertexAttribPointer(this.vertex_location, 3, GL_FLOAT, false, 0, 0);
-		uv_array[buffer_index].flip();
+		glEnableVertexAttribArray(Chunk.vertex_location);
+		glVertexAttribPointer(Chunk.vertex_location, 3, GL_FLOAT, false, 0, 0);
 		vbo_uv = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv);
 		glBufferData(GL_ARRAY_BUFFER, uv_array[buffer_index], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(this.uv_location);
-		glVertexAttribPointer(this.uv_location, 3, GL_FLOAT, false, 0, 0);
-		
-	
-		
+		glEnableVertexAttribArray(Chunk.uv_location);
+		glVertexAttribPointer(Chunk.uv_location, 3, GL_FLOAT, false, 0, 0);
 		glBindVertexArray(0);
 		
-		Chunk.vertexs_array[buffer_index].clear();
-		Chunk.uv_array[buffer_index].clear();
+		glUseProgram(Chunk.shader.id);
+		glUniform1i(Chunk.texture_diffuse_location[0], 0);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_top").id);
+		glUniform1i(Chunk.texture_diffuse_location[1], 1);
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_side").id);
+		glUniform1i(Chunk.texture_diffuse_location[2], 2);
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_bottom").id);
+		glUseProgram(0);
 		this.vao_builded = true;
 		buffer_wait[this.buffer_index] = false;
 	}
 	
 	public void draw(FloatBuffer projection, FloatBuffer view, FloatBuffer model, Vector3f light)
 	{	
-		glUseProgram(this.shader.id);
+		//glUseProgram(this.shader.id);
 		
-		glUniformMatrix4fv(this.projection_location, false, projection);
-		glUniformMatrix4fv(this.view_location, false, view);
-		glUniformMatrix4fv(this.model_location, false, model);
-		glUniform3f(glGetUniformLocation(this.shader.id, "light_worldspace"), light.x, light.y + 10, light.z);
+		//glUniformMatrix4fv(this.projection_location, false, projection);
+		//glUniformMatrix4fv(this.view_location, false, view);
+		glUniformMatrix4fv(Chunk.model_location, false, model);
+		//glUniform3f(glGetUniformLocation(this.shader.id, "light_worldspace"), light.x, light.y + 10, light.z);
 		
 //		int[] exponents = new int[3];
 //		exponents[0] = Texture.list.get("grass_top").id;
 //		exponents[1] = Texture.list.get("grass_side").id;
 //		exponents[2] = Texture.list.get("grass_bottom").id;
-		glUniform1i(this.texture_diffuse_location[0], 0);
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_top").id);
-		glUniform1i(this.texture_diffuse_location[1], 1);
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_side").id);
-		glUniform1i(this.texture_diffuse_location[2], 2);
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_bottom").id);
+		
 		//glUniform1iv(this.texture_diffuse_location[0], exponents);
 		//glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_top").id);
 		//glActiveTexture(GL_TEXTURE0 + 1);
@@ -281,6 +264,6 @@ public class Chunk extends Component {
 		glDrawArrays(GL_TRIANGLES, 0, this.s * 3);
 		glBindVertexArray(0);
 		
-		glUseProgram(0);
+		//glUseProgram(0);
 	}
 }

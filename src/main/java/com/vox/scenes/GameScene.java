@@ -34,11 +34,38 @@ public class GameScene extends Scene {
 	{
 		glfwSetCursorPos(Vox.vox.window, Vox.vox.screen.middleWidth, Vox.vox.screen.middleHeight);
 		this.camera = new Camera(new Vector3f(5.0f, 5.0f, 5.0f), new Vector3f(37,316,0));
-		this.camera.setProjection(50.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 400f);
+		this.camera.setProjection(50.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 600f);
 		this.camera.buildFPSProjection();
 		this.seed = new Random().nextInt();
 		
-		this.load_chunks(17);
+		Chunk.build_shader();
+		this.load_chunks(6);
+		for (int o = 0; o < 60; o++)
+		{
+			for (int i = 0; i < Chunk.SIZE_STATIC_ARRAY; i++)
+			{
+				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
+				{
+					Vector3f v = chunk_bach.iterator().next();
+					chunk_bach.remove(v);
+					GameObject obj = new GameObject();
+					obj.transform.position.x = v.x;
+					obj.transform.position.z = v.z;
+					obj.transform.position.y = v.y;
+					//Chunk.wait = true;
+					Chunk c = new Chunk();
+					
+					c.buffer_index = i;
+					obj.addComponent(Chunk.class, c);
+					c.pre_build_chunk();
+					c.build_vao();
+					c.vao_builded = true;
+					this.add(obj);
+					Chunk.buffer_wait[i] = false;
+					//Chunk.buffer_wait[i] = true;
+				}
+			}
+		}
 		
 		this.t = new Thread(this);
 		this.t.setPriority(Thread.MIN_PRIORITY);
@@ -55,7 +82,7 @@ public class GameScene extends Scene {
 		{
 			for (int z = (fz - far); z < (fz + far); z++)
 			{
-				for (int y = (0 - 1); y < (0 + 6); y++)
+				for (int y = (0); y < (0 + 4); y++)
 				{
 					if (y < 0)
 						continue ;
@@ -143,19 +170,19 @@ public class GameScene extends Scene {
 		has_moved = false;
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, 5));
+			this.camera.move(new Vector3f(0, 0, 20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_D)) {//RIGHT
 			has_moved = true;
-			this.camera.move(new Vector3f(5, 0, 0));
+			this.camera.move(new Vector3f(20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_A)) {//LEFT
 			has_moved = true;
-			this.camera.move(new Vector3f(-5, 0, 0));
+			this.camera.move(new Vector3f(-20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_S)) {//DOWN
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, -5));
+			this.camera.move(new Vector3f(0, 0, -20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
 			has_moved = true;
@@ -165,21 +192,21 @@ public class GameScene extends Scene {
 
 	@Override
 	public void draw() {
-		if (objs.size() > 0 && System.currentTimeMillis() > lasttime + (1000L / 120L))
+		this.move_camera();
+		this.camera.buildFPSProjection();
+		this._draw();
+		updateFps();
+		
+		while (objs.size() > 0)
 		{
-			GameObject obj = objs.iterator().next();
+			GameObject obj = objs.get(0);
 			
 			Chunk c = (Chunk)obj.getComponent(Chunk.class);
 			c.build_vao();
 			c.vao_builded = true;
 			this.add(obj);
 			objs.remove(obj);
-			lasttime = System.currentTimeMillis();
 		}
-		this.move_camera();
-		this.camera.buildFPSProjection();
-		this._draw();
-		updateFps();
 	}
 	
 	static long lastTime = 0;
@@ -199,12 +226,13 @@ public class GameScene extends Scene {
 
 	@Override
 	public void run() {
+		
 		while (Vox.running == true)
 		{
 			if (has_moved && System.currentTimeMillis() > lasttime + (1000L / 20L))
 			{
 				//this.load_chunks_line(10, 4, 5);
-				this.load_chunks(17);
+				this.load_chunks(10);
 			}
 			
 			for (int i = 0; i < Chunk.SIZE_STATIC_ARRAY; i++)

@@ -129,7 +129,6 @@ public class Vox
 		while (!glfwWindowShouldClose(window))
 		{
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			
 			if (this.scene != null)
 				this.scene.draw();
 			glfwSwapBuffers(window);

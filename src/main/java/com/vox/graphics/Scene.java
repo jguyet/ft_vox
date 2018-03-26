@@ -1,5 +1,8 @@
 package com.vox.graphics;
 
+import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
+import static org.lwjgl.opengl.GL20.glUseProgram;
+
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +41,13 @@ public abstract class Scene implements Runnable {
 	
 	protected void _draw()
 	{
+		if (Chunk.shader == null)
+			Chunk.build_shader();
+		glUseProgram(Chunk.shader.id);
+		
+		glUniformMatrix4fv(Chunk.projection_location, false, this.camera.projectionMatrix);
+		glUniformMatrix4fv(Chunk.view_location, false, this.camera.viewMatrix);
+		
 		for (GameObject obj : gameObjects.values())
 		{
 			if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
@@ -72,6 +82,7 @@ public abstract class Scene implements Runnable {
 			if (chunk != null)
 				chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, mMatrix, this.camera.transform.position);
 		}
+		glUseProgram(0);
 	}
 	
 	public abstract void draw();
