@@ -30,7 +30,7 @@ public class Chunk extends Component {
 
 	//public static Map<String, Chunk>	chunks = new HashMap<String, Chunk>();
 	
-	public static final int SIZE_STATIC_ARRAY = 40;
+	public static final int SIZE_STATIC_ARRAY = 10;
 	
 	public static final int SIZE_WIDTH = 16;
 	public static final int SIZE_HEIGHT = 16;

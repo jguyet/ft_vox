@@ -170,19 +170,19 @@ public class GameScene extends Scene {
 		has_moved = false;
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, 20));
+			this.camera.move(new Vector3f(0, 0, 5));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_D)) {//RIGHT
 			has_moved = true;
-			this.camera.move(new Vector3f(20, 0, 0));
+			this.camera.move(new Vector3f(5, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_A)) {//LEFT
 			has_moved = true;
-			this.camera.move(new Vector3f(-20, 0, 0));
+			this.camera.move(new Vector3f(-5, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_S)) {//DOWN
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, -20));
+			this.camera.move(new Vector3f(0, 0, -5));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
 			has_moved = true;
@@ -197,7 +197,8 @@ public class GameScene extends Scene {
 		this._draw();
 		updateFps();
 		
-		while (objs.size() > 0)
+		int i = 0;
+		while (objs.size() > 0 && i < 10)
 		{
 			GameObject obj = objs.get(0);
 			
@@ -206,6 +207,7 @@ public class GameScene extends Scene {
 			c.vao_builded = true;
 			this.add(obj);
 			objs.remove(obj);
+			i++;
 		}
 	}
 	
@@ -239,7 +241,7 @@ public class GameScene extends Scene {
 			{
 				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
 				{
-					Vector3f v = chunk_bach.iterator().next();
+					Vector3f v = chunk_bach.get(0);
 					chunk_bach.remove(v);
 					GameObject obj = new GameObject();
 					obj.transform.position.x = v.x;
