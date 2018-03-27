@@ -18,6 +18,7 @@ public abstract class Scene implements Runnable {
 	public Camera					camera;
 	
 	private Map<Long, GameObject>	gameObjects = new HashMap<Long, GameObject>();
+	private ArrayList<GameObject>	objs_deletes = new ArrayList<GameObject>();
 	
 	protected Thread t;
 	
@@ -33,23 +34,29 @@ public abstract class Scene implements Runnable {
 	
 	public boolean remove(GameObject obj)
 	{
-		if (this.gameObjects.containsKey(obj.id) == false)
-			return false;
-		this.gameObjects.remove(obj.id);
-		return true;
+		obj.toDelete = true;
+		return (true);
+//		if (this.gameObjects.containsKey(obj.id) == false)
+//			return false;
+//		this.gameObjects.remove(obj.id);
+//		return true;
 	}
 	
 	protected void _draw()
-	{
+	{	
 		if (Chunk.shader == null)
 			Chunk.build_shader();
 		glUseProgram(Chunk.shader.id);
-		
 		glUniformMatrix4fv(Chunk.projection_location, false, this.camera.projectionMatrix);
 		glUniformMatrix4fv(Chunk.view_location, false, this.camera.viewMatrix);
 		
 		for (GameObject obj : gameObjects.values())
 		{
+			if (obj.toDelete)
+			{
+				objs_deletes.add(obj);
+				continue ;
+			}
 			if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
 					&& obj.transform.position.z < (this.camera.transform.position.z - 50f))
 				continue ;
@@ -62,27 +69,38 @@ public abstract class Scene implements Runnable {
 			if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
 					&& obj.transform.position.x < (this.camera.transform.position.x - 50f))
 				continue ;
-			if (this.camera.transform.position.x > obj.transform.position.x + this.camera.zFar)
-				continue ;
-			if (this.camera.transform.position.x < obj.transform.position.x - this.camera.zFar)
-				continue ;
-			if (this.camera.transform.position.z > obj.transform.position.z + this.camera.zFar)
-				continue ;
-			if (this.camera.transform.position.z < obj.transform.position.z - this.camera.zFar)
-				continue ;
+//			if (this.camera.transform.position.x > obj.transform.position.x + this.camera.zFar)
+//				continue ;
+//			if (this.camera.transform.position.x < obj.transform.position.x - this.camera.zFar)
+//				continue ;
+//			if (this.camera.transform.position.z > obj.transform.position.z + this.camera.zFar)
+//				continue ;
+//			if (this.camera.transform.position.z < obj.transform.position.z - this.camera.zFar)
+//				continue ;
 			Chunk chunk = (Chunk)obj.getComponent(Chunk.class);
 			
-			FloatBuffer mMatrix = BufferUtils.createFloatBuffer(16);
-	        new Matrix4f().translate(obj.transform.position)
-	            //.rotateX(obj.transform.rotation.x)
-	            //.rotateY(obj.transform.rotation.y)
-	            //.rotateZ(obj.transform.rotation.z)
-	            .get(mMatrix);
-			
 			if (chunk != null)
-				chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, mMatrix, this.camera.transform.position);
+				chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(), this.camera.transform.position);
 		}
 		glUseProgram(0);
+		
+		int i = 0;
+		while (objs_deletes.size() > 0 && i < 5)
+		{
+			GameObject obj = objs_deletes.get(0);
+			
+			Chunk c = (Chunk)obj.getComponent(Chunk.class);
+			
+			if (c != null)
+				c.destruct();
+			
+			//System.out.println("DELETE : " + obj.id);
+			this.gameObjects.remove(obj.id);
+			
+			objs_deletes.remove(0);
+			i++;
+		}
+		objs_deletes.clear();
 	}
 	
 	public abstract void draw();

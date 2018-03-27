@@ -6,8 +6,7 @@ import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.glBindVertexArray;
-import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
 import com.flowpowered.noise.module.source.Perlin;
@@ -27,19 +26,15 @@ import java.util.Map;
 import java.util.Random;
 
 public class Chunk extends Component {
-
-	//public static Map<String, Chunk>	chunks = new HashMap<String, Chunk>();
 	
 	public static final int SIZE_STATIC_ARRAY = 10;
 	
-	public static final int SIZE_WIDTH = 16;
-	public static final int SIZE_HEIGHT = 16;
+	public static final int SIZE_WIDTH = 62;
+	public static final int SIZE_HEIGHT = 32;
 	
 	private int		vao;
 	private int		vbo_vertexs;
 	private int		vbo_uv;
-	private int		vbo_normals;
-	private int		vbo_colors;
 	public static Shader	shader = null;
 	
 	public static int vertex_location;
@@ -67,9 +62,7 @@ public class Chunk extends Component {
 	public boolean vao_builded = false;
 	
 	static {
-		noise = new Noise();
-		noise.setSeed(new Random().nextInt());
-		noise.build();
+		noise = new Noise(new Random().nextInt(), 5555, 0.5f);
 		perlin = new Perlin();
 		
 		for (int i = 0; i < SIZE_STATIC_ARRAY; i++)
@@ -88,15 +81,21 @@ public class Chunk extends Component {
 		
 	}
 	
+	public void destruct()
+	{
+		glDeleteVertexArrays(this.vao);
+		glDeleteBuffers(this.vbo_uv);
+	}
+	
 	public void pre_build_chunk()
 	{
-//		String key = "" + (int)Math.floor(this.gameObject.transform.position.x / Chunk.SIZE_WIDTH) + ","
-//						+ (int)Math.floor(this.gameObject.transform.position.y / Chunk.SIZE_HEIGHT) + ","
-//						+ (int)Math.floor(this.gameObject.transform.position.z / Chunk.SIZE_WIDTH);
-		
-		//chunks.put(key, this);
 		build_blocks();
 		build_arrays();
+	}
+	
+	private int getNoise(int x, int z)
+	{
+		return ((int)(perlin.getValue((double)((double)(x + 10)/300.0f), 0.40, (double)((double)(z + 10)/300.0f)) * 50) + 10);
 	}
 	
 	public void build_blocks()
@@ -110,8 +109,7 @@ public class Chunk extends Component {
 		{
 			for (int z = sz - (Chunk.SIZE_WIDTH / 2); z < sz + (Chunk.SIZE_WIDTH / 2); z++)
 			{
-				int height = (int)(perlin.getValue((double)((double)(x + 10)/300.0f), 0.40, (double)((double)(z + 10)/300.0f)) * 50) + 10;
-				
+				int height = getNoise(x, z);
 				for (int y = sy - (Chunk.SIZE_HEIGHT / 2); y < sy + (Chunk.SIZE_HEIGHT / 2); y++)
 				{
 					if (height < y)
@@ -127,6 +125,12 @@ public class Chunk extends Component {
 	{	
 		Chunk.vertexs_array[buffer_index].clear();
 		Chunk.uv_array[buffer_index].clear();
+		
+		int sx, sy, sz;
+		sx = (int)this.gameObject.transform.position.x;
+		sy = (int)this.gameObject.transform.position.y;
+		sz = (int)this.gameObject.transform.position.z;
+		
 		for (Vector3f obj : blocks.values())
 		{
 			
@@ -140,42 +144,48 @@ public class Chunk extends Component {
 			if (this.gameObject.transform.position.y + y < -1)
 				continue ;
 			
-			if (blocks.containsKey("" + bx + "," + by + "," + (bz + 1)) == false)
+			boolean has_left = getNoise(sx + (bx - 1), sz + (bz)) > (sy + by);
+			boolean has_right = getNoise(sx + (bx + 1), sz + (bz)) > (sy + by);
+			boolean has_front = getNoise(sx + (bx), sz + (bz + 1)) > (sy + by);
+			boolean has_back = getNoise(sx + (bx), sz + (bz - 1)) > (sy + by);
+			boolean has_up = getNoise(sx + bx, sz + bz) > (sy + by);
+			
+			if (has_front == false && blocks.containsKey("" + bx + "," + by + "," + (bz + 1)) == false)
 			{
 				this.s += 2;
 				vertexs_array[buffer_index].put(Factory.block_front(x,y,z));
 				uv_array[buffer_index].put(Factory.texture_side());
 			}
-			if (blocks.containsKey("" + bx + "," + by + "," + (bz - 1)) == false)
+			if (has_back == false && blocks.containsKey("" + bx + "," + by + "," + (bz - 1)) == false)
 			{
 				this.s += 2;
 				vertexs_array[buffer_index].put(Factory.block_back(x,y,z));
 				uv_array[buffer_index].put(Factory.texture_side());
 			}
-			if (blocks.containsKey("" + (bx - 1) + "," + by + "," + bz) == false)
+			if (has_left == false && blocks.containsKey("" + (bx - 1) + "," + by + "," + bz) == false)
 			{
 				this.s += 2;
 				vertexs_array[buffer_index].put(Factory.block_left(x,y,z));
 				uv_array[buffer_index].put(Factory.texture_side());
 			}
-			if (blocks.containsKey("" + (bx + 1) + "," + by + "," + bz) == false)
+			if (has_right == false && blocks.containsKey("" + (bx + 1) + "," + by + "," + bz) == false)
 			{
 				this.s += 2;
 				vertexs_array[buffer_index].put(Factory.block_right(x,y,z));
 				uv_array[buffer_index].put(Factory.texture_side());
 			}
-			if (blocks.containsKey("" + bx + "," + (by + 1) + "," + bz) == false)
+			if (has_up == false && blocks.containsKey("" + bx + "," + (by + 1) + "," + bz) == false)
 			{
 				this.s += 2;
 				vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
 				uv_array[buffer_index].put(Factory.texture_front());
 			}
-			if (blocks.containsKey("" + bx + "," + (by - 1) + "," + bz) == false)
-			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_side());
-			}
+//			if (blocks.containsKey("" + bx + "," + (by - 1) + "," + bz) == false)
+//			{
+//				this.s += 2;
+//				vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
+//				uv_array[buffer_index].put(Factory.texture_side());
+//			}
 		}
 		
 		Chunk.vertexs_array[buffer_index].limit(Chunk.vertexs_array[buffer_index].position());
@@ -215,11 +225,13 @@ public class Chunk extends Component {
 		glBufferData(GL_ARRAY_BUFFER, vertexs_array[buffer_index], GL_STATIC_DRAW);
 		glEnableVertexAttribArray(Chunk.vertex_location);
 		glVertexAttribPointer(Chunk.vertex_location, 3, GL_FLOAT, false, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		vbo_uv = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv);
 		glBufferData(GL_ARRAY_BUFFER, uv_array[buffer_index], GL_STATIC_DRAW);
 		glEnableVertexAttribArray(Chunk.uv_location);
 		glVertexAttribPointer(Chunk.uv_location, 3, GL_FLOAT, false, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 		
 		glUseProgram(Chunk.shader.id);
@@ -233,7 +245,7 @@ public class Chunk extends Component {
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_bottom").id);
 		glUseProgram(0);
-		this.vao_builded = true;
+		//this.vao_builded = true;
 		buffer_wait[this.buffer_index] = false;
 	}
 	

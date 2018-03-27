@@ -1,35 +1,6 @@
 package com.vox;
 
-import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MAJOR;
-import static org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MINOR;
-import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
-import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_CORE_PROFILE;
-import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT;
-import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_PROFILE;
-import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
-import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
-import static org.lwjgl.glfw.GLFW.GLFW_VISIBLE;
-import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
-import static org.lwjgl.glfw.GLFW.glfwDefaultWindowHints;
-import static org.lwjgl.glfw.GLFW.glfwDestroyWindow;
-import static org.lwjgl.glfw.GLFW.glfwInit;
-import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
-import static org.lwjgl.glfw.GLFW.glfwPollEvents;
-import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
-import static org.lwjgl.glfw.GLFW.glfwShowWindow;
-import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
-import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
-import static org.lwjgl.glfw.GLFW.glfwTerminate;
-import static org.lwjgl.glfw.GLFW.glfwWindowHint;
-import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
-import static org.lwjgl.glfw.GLFW.glfwSetCursorPosCallback;
-import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
-import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
-import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
-import static org.lwjgl.glfw.GLFW.GLFW_CURSOR;
-import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED;
-import static org.lwjgl.glfw.GLFW.glfwSetInputMode;
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
@@ -45,13 +16,15 @@ import com.vox.graphics.Scene;
 import com.vox.graphics.Screen;
 import com.vox.graphics.inputs.Keyboard;
 import com.vox.graphics.inputs.Mouse;
+import com.vox.loop.LoopMotor;
+import com.vox.loop.MotorGraphics;
 import com.vox.scenes.GameScene;
 
 /**
  * Hello world!
  *
  */
-public class Vox 
+public class Vox implements MotorGraphics
 {
 	public static Vox	vox;
 	
@@ -60,6 +33,8 @@ public class Vox
 	
 	public long	window;
 	public static boolean running;
+	
+	private LoopMotor motor;
 
 	public Vox()
 	{
@@ -77,10 +52,10 @@ public class Vox
 	
 	private void build_context()
 	{
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	}
 
 	public void build_window()
@@ -89,15 +64,19 @@ public class Vox
 		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		//glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		
+		glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+	    glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		this.build_context();
 		window = glfwCreateWindow(this.screen.width, this.screen.height, "ft_vox", NULL, NULL);
 		if ( window == NULL )
 			throw new RuntimeException("Failed to create the GLFW window");
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1);
+		glfwSwapInterval(0);
 		glfwShowWindow(window);
+		//glfwGetWindowAttrib(window, GLFW_VISIBLE);
 		GL.createCapabilities();
 	}
 	
@@ -125,15 +104,31 @@ public class Vox
 		glDisable(GL_SCISSOR_TEST);
 		//glEnable(GL_CULL_FACE);
 		glClearColor(0.02f, 0.54f, 0.69f, 0.0f);
-		while (!glfwWindowShouldClose(window))
-		{
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			if (this.scene != null)
-				this.scene.draw();
-			glfwSwapBuffers(window);
-			glfwPollEvents();
-		}
+		
+		this.motor = new LoopMotor(this);
+		this.motor.start();
 		this.running = false;
+	}
+	
+	@Override
+	public void graphicControllerLoop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void graphicRenderingLoop() {
+		if (glfwWindowShouldClose(window))
+		{
+			motor.stop();
+			return ;
+		}
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+		
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		if (Vox.vox.scene != null)
+			Vox.vox.scene.draw();
 	}
 
 	public static void main(String[] args) {

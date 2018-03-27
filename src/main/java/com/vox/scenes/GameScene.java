@@ -10,6 +10,7 @@ import static org.lwjgl.glfw.GLFW.glfwSetCursorPos;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import org.joml.Vector3f;
@@ -23,12 +24,15 @@ import com.vox.graphics.inputs.Keyboard;
 
 public class GameScene extends Scene {
 	
-	private ArrayList<Vector3f>			chunk_bach = new ArrayList<Vector3f>();
-	private static Map<String, Boolean>	chunks = new HashMap<String, Boolean>();
-	private ArrayList<GameObject>		objs = new ArrayList<GameObject>();
+	private ArrayList<Chunk>			chunk_bach = new ArrayList<Chunk>();
+	private Map<String, Chunk>			chunks = new HashMap<String, Chunk>();
+	private Map<String, Chunk>			chunks_delatable = new HashMap<String, Chunk>();
+	private ArrayList<Chunk>			objs_drawable = new ArrayList<Chunk>();
 	private boolean						has_moved = true;
 	private double						seed;
 	private long						lasttime = 0;
+	
+	private static final int			LARGE = 2;
 	
 	public GameScene()
 	{
@@ -39,32 +43,19 @@ public class GameScene extends Scene {
 		this.seed = new Random().nextInt();
 		
 		Chunk.build_shader();
-		this.load_chunks(6);
-		for (int o = 0; o < 60; o++)
+		this.load_chunks(LARGE);
+		while (this.chunk_bach.size() > 0 && Chunk.buffer_wait[0] == false)
 		{
-			for (int i = 0; i < Chunk.SIZE_STATIC_ARRAY; i++)
-			{
-				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
-				{
-					Vector3f v = chunk_bach.iterator().next();
-					chunk_bach.remove(v);
-					GameObject obj = new GameObject();
-					obj.transform.position.x = v.x;
-					obj.transform.position.z = v.z;
-					obj.transform.position.y = v.y;
-					//Chunk.wait = true;
-					Chunk c = new Chunk();
-					
-					c.buffer_index = i;
-					obj.addComponent(Chunk.class, c);
-					c.pre_build_chunk();
-					c.build_vao();
-					c.vao_builded = true;
-					this.add(obj);
-					Chunk.buffer_wait[i] = false;
-					//Chunk.buffer_wait[i] = true;
-				}
-			}
+			Chunk c = chunk_bach.get(0);
+			chunk_bach.remove(0);
+			
+			c.buffer_index = 0;
+			c.pre_build_chunk();
+			c.build_vao();
+			c.vao_builded = true;
+			this.add(c.gameObject);
+			Chunk.buffer_wait[0] = false;
+			//Chunk.buffer_wait[i] = true;
 		}
 		
 		this.t = new Thread(this);
@@ -78,11 +69,14 @@ public class GameScene extends Scene {
 		int fx = (int)Math.floor(this.camera.transform.position.x / Chunk.SIZE_WIDTH);
 		int fz = (int)Math.floor(this.camera.transform.position.z / Chunk.SIZE_WIDTH);
 		int fy = (int)Math.floor(this.camera.transform.position.y / Chunk.SIZE_HEIGHT);
+		
+		Map<String, Chunk>	chunks_d = new HashMap<String, Chunk>(this.chunks);
+		
 		for (int x = (fx - far); x < (fx + far); x++)
 		{
 			for (int z = (fz - far); z < (fz + far); z++)
 			{
-				for (int y = (0); y < (0 + 4); y++)
+				for (int y = (0); y < (0 + 8); y++)
 				{
 					if (y < 0)
 						continue ;
@@ -91,78 +85,52 @@ public class GameScene extends Scene {
 					int cy = Chunk.SIZE_HEIGHT * y;
 					String key = "" + cx + "," + cz + "," + cy;
 					
+					if (chunks_d.containsKey(key))
+						chunks_d.remove(key);
 					if (chunks.containsKey(key))
 						continue ;
-					chunk_bach.add(new Vector3f(cx, cy, cz));
-					chunks.put(key, true);
-					//System.out.println("SALUT" + cx + " " + cy + " " + cz);
-				}
-			}
-		}
-	}
-	
-	void								load_chunks_line(int far, int large, int size)
-	{
-		load_chunks(size);
-		
-		int fx = (int)Math.floor(this.camera.transform.position.x / Chunk.SIZE_WIDTH);
-		int fz = (int)Math.floor(this.camera.transform.position.z / Chunk.SIZE_WIDTH);
-		int fy = (int)Math.floor(this.camera.transform.position.y / Chunk.SIZE_HEIGHT);
-		for (int x = (fx - far); x < (fx + far); x++)
-		{
-			for (int z = (fz - large); z < (fz + large); z++)
-			{
-				for (int y = (0 - 1); y < (0 + 6); y++)
-				{
-					if (y < 0)
+					if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
+							&& cz < (this.camera.transform.position.z - 50f))
 						continue ;
-					int cx = Chunk.SIZE_WIDTH * x;
-					int cz = Chunk.SIZE_WIDTH * z;
-					int cy = Chunk.SIZE_HEIGHT * y;
-					String key = "" + cx + "," + cz + "," + cy;
+					if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
+							&& cz > (this.camera.transform.position.z + 50f))
+						continue ;
+					if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
+							&& cx > (this.camera.transform.position.x + 50f))
+						continue ;
+					if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
+							&& cx < (this.camera.transform.position.x - 50f))
+						continue ;
 					
-					if (chunks.containsKey(key))
-						continue ;
-					chunk_bach.add(new Vector3f(cx, cy, cz));
-					chunks.put(key, true);
-					//System.out.println("SALUT" + cx + " " + cy + " " + cz);
-				}
-			}
-		}
-		
-		for (int x = (fx - large); x < (fx + large); x++)
-		{
-			for (int z = (fz - far); z < (fz + far); z++)
-			{
-				for (int y = (0 - 1); y < (0 + 6); y++)
-				{
-					if (y < 0)
-						continue ;
-					int cx = Chunk.SIZE_WIDTH * x;
-					int cz = Chunk.SIZE_WIDTH * z;
-					int cy = Chunk.SIZE_HEIGHT * y;
-					String key = "" + cx + "," + cz + "," + cy;
+					GameObject obj = new GameObject();
+					obj.transform.position.x = cx;
+					obj.transform.position.z = cz;
+					obj.transform.position.y = cy;
+					Chunk c = new Chunk();
+					obj.addComponent(Chunk.class, c);
 					
-					if (chunks.containsKey(key))
-						continue ;
-					chunk_bach.add(new Vector3f(cx, cy, cz));
-					chunks.put(key, true);
-					//System.out.println("SALUT" + cx + " " + cy + " " + cz);
+					chunks.put(key, c);
+					chunk_bach.add(c);
 				}
 			}
 		}
+		this.chunks_delatable = chunks_d;
 	}
 	
 	void								unload_chunks(int far)
 	{
-//		int fx = (int)Math.floor(this.camera.transform.position.x / Chunk.SIZE_WIDTH);
-//		int fz = (int)Math.floor(this.camera.transform.position.z / Chunk.SIZE_WIDTH);
-//		int fy = (int)Math.floor(this.camera.transform.position.y / Chunk.SIZE_HEIGHT);
-//		
-//		for (Chunk c : Chunk.chunks.values())
-//		{
-//			
-//		}
+		//System.out.println("CHUNK A DELETE : " + this.chunks_delatable.size());
+		
+		Map<String, Chunk>	chunks_d = new HashMap<String, Chunk>(this.chunks_delatable);
+		
+		for (Entry<String, Chunk> entry : chunks_d.entrySet())
+		{
+			Chunk c = entry.getValue();
+			
+			c.gameObject.toDelete = true;
+			this.chunks_delatable.remove(0);
+			this.chunks.remove(entry.getKey());
+		}
 	}
 	
 	void								move_camera()
@@ -170,19 +138,19 @@ public class GameScene extends Scene {
 		has_moved = false;
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, 5));
+			this.camera.move(new Vector3f(0, 0, 20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_D)) {//RIGHT
 			has_moved = true;
-			this.camera.move(new Vector3f(5, 0, 0));
+			this.camera.move(new Vector3f(20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_A)) {//LEFT
 			has_moved = true;
-			this.camera.move(new Vector3f(-5, 0, 0));
+			this.camera.move(new Vector3f(-20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_S)) {//DOWN
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, -5));
+			this.camera.move(new Vector3f(0, 0, -20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
 			has_moved = true;
@@ -190,25 +158,31 @@ public class GameScene extends Scene {
 		}
 	}
 
+	static long lastTimeo = 0;
+	
 	@Override
 	public void draw() {
 		this.move_camera();
 		this.camera.buildFPSProjection();
 		this._draw();
 		updateFps();
-		
 		int i = 0;
-		while (objs.size() > 0 && i < 10)
+		
+		boolean has_draw = false;
+		while (objs_drawable.size() > 0 && i < 2 && System.currentTimeMillis() - lastTimeo > (1000L / 30L))
 		{
-			GameObject obj = objs.get(0);
-			
-			Chunk c = (Chunk)obj.getComponent(Chunk.class);
+			Chunk c = objs_drawable.get(0);
+			if (c == null)
+				break ;
 			c.build_vao();
 			c.vao_builded = true;
-			this.add(obj);
-			objs.remove(obj);
+			this.add(c.gameObject);
+			objs_drawable.remove(c);
+			has_draw = true;
 			i++;
 		}
+		if (has_draw)
+			lastTimeo = System.currentTimeMillis();
 	}
 	
 	static long lastTime = 0;
@@ -231,30 +205,23 @@ public class GameScene extends Scene {
 		
 		while (Vox.running == true)
 		{
-			if (has_moved && System.currentTimeMillis() > lasttime + (1000L / 20L))
+			if (has_moved)
 			{
-				//this.load_chunks_line(10, 4, 5);
-				this.load_chunks(10);
+				this.load_chunks(LARGE);
+				this.unload_chunks(LARGE);
 			}
 			
 			for (int i = 0; i < Chunk.SIZE_STATIC_ARRAY; i++)
 			{
 				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
 				{
-					Vector3f v = chunk_bach.get(0);
-					chunk_bach.remove(v);
-					GameObject obj = new GameObject();
-					obj.transform.position.x = v.x;
-					obj.transform.position.z = v.z;
-					obj.transform.position.y = v.y;
-					//Chunk.wait = true;
-					Chunk c = new Chunk();
+					Chunk c = chunk_bach.get(0);
+					chunk_bach.remove(c);
 					
 					c.buffer_index = i;
-					obj.addComponent(Chunk.class, c);
 					c.pre_build_chunk();
 					Chunk.buffer_wait[i] = true;
-					this.objs.add(obj);
+					this.objs_drawable.add(c);
 				}
 			}
 			try {
