@@ -56,6 +56,7 @@ public class Vox implements MotorGraphics
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	}
 
 	public void build_window()
@@ -64,11 +65,11 @@ public class Vox implements MotorGraphics
 		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 		glfwDefaultWindowHints();
-		//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		//glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 		
-		glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-	    glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+		//glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+	    glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
+	    //glfwWindowHint(GLFW_AUTO_ICONIFY, GL_TRUE);
 		this.build_context();
 		window = glfwCreateWindow(this.screen.width, this.screen.height, "ft_vox", NULL, NULL);
 		if ( window == NULL )
@@ -76,7 +77,6 @@ public class Vox implements MotorGraphics
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(0);
 		glfwShowWindow(window);
-		//glfwGetWindowAttrib(window, GLFW_VISIBLE);
 		GL.createCapabilities();
 	}
 	
@@ -102,7 +102,9 @@ public class Vox implements MotorGraphics
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_SCISSOR_TEST);
-		//glEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glClearColor(0.02f, 0.54f, 0.69f, 0.0f);
 		
 		this.motor = new LoopMotor(this);
@@ -113,7 +115,8 @@ public class Vox implements MotorGraphics
 	@Override
 	public void graphicControllerLoop() {
 		// TODO Auto-generated method stub
-		
+		if (Vox.vox.scene != null)
+			Vox.vox.scene.update();
 	}
 
 	@Override

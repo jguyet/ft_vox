@@ -8,6 +8,8 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_W;
 import static org.lwjgl.glfw.GLFW.glfwSetCursorPos;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,18 +34,18 @@ public class GameScene extends Scene {
 	private double						seed;
 	private long						lasttime = 0;
 	
-	private static final int			LARGE = 2;
+	private static final int			LARGE = 10;
 	
 	public GameScene()
 	{
 		glfwSetCursorPos(Vox.vox.window, Vox.vox.screen.middleWidth, Vox.vox.screen.middleHeight);
-		this.camera = new Camera(new Vector3f(5.0f, 5.0f, 5.0f), new Vector3f(37,316,0));
-		this.camera.setProjection(50.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 600f);
+		this.camera = new Camera(new Vector3f(5000.0f, 5.0f, 5000.0f), new Vector3f(37,316,0));
+		this.camera.setProjection(50.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 1000f);
 		this.camera.buildFPSProjection();
 		this.seed = new Random().nextInt();
 		
 		Chunk.build_shader();
-		this.load_chunks(LARGE);
+		this.load_chunks(LARGE * 2, LARGE * 2);
 		while (this.chunk_bach.size() > 0 && Chunk.buffer_wait[0] == false)
 		{
 			Chunk c = chunk_bach.get(0);
@@ -60,46 +62,49 @@ public class GameScene extends Scene {
 		
 		this.t = new Thread(this);
 		this.t.setPriority(Thread.MIN_PRIORITY);
-		this.t.setDaemon(false);
 		this.t.start();
 	}
 	
-	void								load_chunks(int far)
+	void								load_chunks(int far_load, int far_delete)
 	{
+		int far = far_load > far_delete ? far_load : far_delete;
 		int fx = (int)Math.floor(this.camera.transform.position.x / Chunk.SIZE_WIDTH);
 		int fz = (int)Math.floor(this.camera.transform.position.z / Chunk.SIZE_WIDTH);
-		int fy = (int)Math.floor(this.camera.transform.position.y / Chunk.SIZE_HEIGHT);
 		
 		Map<String, Chunk>	chunks_d = new HashMap<String, Chunk>(this.chunks);
 		
-		for (int x = (fx - far); x < (fx + far); x++)
+		for (int f = (0 - far); f < far; f++)
 		{
-			for (int z = (fz - far); z < (fz + far); z++)
+			for (int x = (fx - f); x < (fx + f); x++)
 			{
-				for (int y = (0); y < (0 + 8); y++)
+				for (int z = (fz - f); z < (fz + f); z++)
 				{
-					if (y < 0)
-						continue ;
 					int cx = Chunk.SIZE_WIDTH * x;
 					int cz = Chunk.SIZE_WIDTH * z;
-					int cy = Chunk.SIZE_HEIGHT * y;
+					int cy = 0;
 					String key = "" + cx + "," + cz + "," + cy;
 					
+					if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
+							&& cz < (this.camera.transform.position.z - (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
+							&& cz > (this.camera.transform.position.z + (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
+							&& cx > (this.camera.transform.position.x + (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
+							&& cx < (this.camera.transform.position.x - (this.camera.transform.position.y)))
+						continue ;
+					if (far_load < f)
+					{
+						if (chunks_d.containsKey(key))
+							chunks_d.remove(key);
+						continue ;
+					}
 					if (chunks_d.containsKey(key))
 						chunks_d.remove(key);
 					if (chunks.containsKey(key))
-						continue ;
-					if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
-							&& cz < (this.camera.transform.position.z - 50f))
-						continue ;
-					if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
-							&& cz > (this.camera.transform.position.z + 50f))
-						continue ;
-					if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
-							&& cx > (this.camera.transform.position.x + 50f))
-						continue ;
-					if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
-							&& cx < (this.camera.transform.position.x - 50f))
 						continue ;
 					
 					GameObject obj = new GameObject();
@@ -114,13 +119,28 @@ public class GameScene extends Scene {
 				}
 			}
 		}
+		final Vector3f cameraPosition = new Vector3f(this.camera.transform.position.x, this.camera.transform.position.y, this.camera.transform.position.z);
+		
+		Collections.sort(chunk_bach, new Comparator<Chunk>() {
+		    public int compare(Chunk c1, Chunk c2) {
+		        int x1 = (int) Math.abs(c1.gameObject.transform.position.x - cameraPosition.x);
+		        int x2 = (int) Math.abs(c2.gameObject.transform.position.x - cameraPosition.x);
+		        
+		        int z1 = (int) Math.abs(c1.gameObject.transform.position.z - cameraPosition.z);
+		        int z2 = (int) Math.abs(c2.gameObject.transform.position.z - cameraPosition.z);
+		        
+		        if ((x1 < x2) && (z1 < z2))
+		        	return 1;
+		        return 0;
+		    }
+		});
+		
 		this.chunks_delatable = chunks_d;
+		unload_chunks();
 	}
 	
-	void								unload_chunks(int far)
+	void								unload_chunks()
 	{
-		//System.out.println("CHUNK A DELETE : " + this.chunks_delatable.size());
-		
 		Map<String, Chunk>	chunks_d = new HashMap<String, Chunk>(this.chunks_delatable);
 		
 		for (Entry<String, Chunk> entry : chunks_d.entrySet())
@@ -135,7 +155,6 @@ public class GameScene extends Scene {
 	
 	void								move_camera()
 	{
-		has_moved = false;
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
 			this.camera.move(new Vector3f(0, 0, 20));
@@ -152,7 +171,7 @@ public class GameScene extends Scene {
 			has_moved = true;
 			this.camera.move(new Vector3f(0, 0, -20));
 		}
-		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
+		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE) && this.camera.transform.position.y < 256f) {//DOWN
 			has_moved = true;
 			this.camera.transform.position.y += 2f;
 		}
@@ -162,27 +181,34 @@ public class GameScene extends Scene {
 	
 	@Override
 	public void draw() {
-		this.move_camera();
 		this.camera.buildFPSProjection();
 		this._draw();
 		updateFps();
-		int i = 0;
 		
 		boolean has_draw = false;
-		while (objs_drawable.size() > 0 && i < 2 && System.currentTimeMillis() - lastTimeo > (1000L / 30L))
+		int max = 0;
+		while (objs_drawable.size() > 0)// && max < 40 && System.currentTimeMillis() - lastTimeo > (1000L / 30L))
 		{
 			Chunk c = objs_drawable.get(0);
 			if (c == null)
 				break ;
-			c.build_vao();
-			c.vao_builded = true;
+			if (c.vao_builded == false)
+				c.build_vao();
 			this.add(c.gameObject);
 			objs_drawable.remove(c);
 			has_draw = true;
-			i++;
+			max++;
 		}
-		if (has_draw)
+		if (has_draw) {
 			lastTimeo = System.currentTimeMillis();
+		}
+	}
+	
+	@Override
+	public void update() {
+		this.move_camera();
+		
+		updateFFps();
 	}
 	
 	static long lastTime = 0;
@@ -195,41 +221,75 @@ public class GameScene extends Scene {
 			lastTime = System.currentTimeMillis();
 			fps = fpsCount;
 			fpsCount = 0;
-			System.out.println("FPS : " + fps);
+			System.out.println("FPS          : " + fps);
 		}
 		fpsCount++;
+	}
+	
+	
+	static long lastfTime = 0;
+	static int ffpsCount = 0;
+	static int ffps = 0;
+	
+	void						updateFFps()
+	{
+		if (lastfTime == 0 || System.currentTimeMillis() > (long)(lastfTime + 1000L)) {
+			lastfTime = System.currentTimeMillis();
+			ffps = ffpsCount;
+			ffpsCount = 0;
+			System.out.println("FFPS          : " + ffps);
+		}
+		ffpsCount++;
+	}
+	
+	static long lastpTime = 0;
+	static int pfpsCount = 0;
+	static int pfps = 0;
+	
+	void						updatePFps()
+	{
+		if (lastpTime == 0 || System.currentTimeMillis() > (long)(lastpTime + 1000L)) {
+			lastpTime = System.currentTimeMillis();
+			pfps = pfpsCount;
+			pfpsCount = 0;
+			System.out.println("PFPS          : " + pfps);
+		}
+		pfpsCount++;
 	}
 
 	@Override
 	public void run() {
+		int ll = 0;
 		
 		while (Vox.running == true)
 		{
-			if (has_moved)
+			this.load_chunks(LARGE, LARGE * 2);
+			if (this.chunk_bach.size() > 0)
 			{
-				this.load_chunks(LARGE);
-				this.unload_chunks(LARGE);
+				ll = LARGE;
+			}
+			else {
+				if (LARGE + ll < LARGE * 2)
+					ll++;
+				this.load_chunks(LARGE + ll, LARGE * 2);
 			}
 			
-			for (int i = 0; i < Chunk.SIZE_STATIC_ARRAY; i++)
+			int i = 0;
+			while (i < Chunk.SIZE_STATIC_ARRAY)
 			{
 				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
 				{
 					Chunk c = chunk_bach.get(0);
-					chunk_bach.remove(c);
+					chunk_bach.remove(0);
 					
 					c.buffer_index = i;
 					c.pre_build_chunk();
-					Chunk.buffer_wait[i] = true;
 					this.objs_drawable.add(c);
 				}
+				i++;
 			}
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			try { Thread.sleep(10); } catch (InterruptedException e) {}
+			updatePFps();
 		}
 	}
 	

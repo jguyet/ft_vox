@@ -10,21 +10,28 @@ public class Factory {
 	{
 		//Texture.loadTexture3D("grass", 512, 512, "assets/textures/grass_top.jpg", "assets/textures/grass_bottom.jpg", "assets/textures/grass_side.jpg");
 		
-		Texture.loadTexture2D("grass_top", "assets/textures/grass_top.jpg");
-		Texture.loadTexture2D("grass_side", "assets/textures/grass_side.jpg");
-		Texture.loadTexture2D("grass_bottom", "assets/textures/grass_bottom.jpg");
+		Texture.loadTexture2D("grass_top", "assets/textures/grass_top.png");
+		Texture.loadTexture2D("grass_side", "assets/textures/soul_sand.png");
+		Texture.loadTexture2D("grass_bottom", "assets/textures/soul_sand.png");
+		Texture.loadTexture2D("snow_side", "assets/textures/soul_sand.png");
+		Texture.loadTexture2D("snow_top", "assets/textures/snow.png");
+		Texture.loadTexture2D("cactus_side", "assets/textures/cactus_side.png");
+		Texture.loadTexture2D("cactus_top", "assets/textures/cactus_top.png");
+		Texture.loadTexture2D("sand", "assets/textures/sand.png");
+		Texture.loadTexture2D("grass", "assets/textures/grass_one.png");
 	}
 
 	public static float[]	block_front(float x, float y, float z)
 	{
 		float[] array = {
 				// Front face
+				x + 0.5f, y + -0.5f, z + 0.5f,
+				x + 0.5f, y + 0.5f, z + 0.5f,
 				x + -0.5f, y + -0.5f, z + 0.5f,
+				
+				x + 0.5f, y + 0.5f, z + 0.5f,
 				x + -0.5f, y + 0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + 0.5f,
 				x + -0.5f, y + -0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + 0.5f,
-				x + 0.5f, y + -0.5f, z + 0.5f
 		};
 		return (array);
 	}
@@ -36,6 +43,7 @@ public class Factory {
 				x + -0.5f, y + -0.5f, z + -0.5f,
 				x + -0.5f, y + 0.5f, z + -0.5f,
 				x + 0.5f, y + 0.5f, z + -0.5f,
+				
 				x + -0.5f, y + -0.5f, z + -0.5f,
 				x + 0.5f, y + 0.5f, z + -0.5f,
 				x + 0.5f, y + -0.5f, z + -0.5f
@@ -47,12 +55,15 @@ public class Factory {
 	{
 		float[] array = {
 				// Left face
-				x + -0.5f, y + -0.5f, z + 0.5f,
-				x + -0.5f, y + 0.5f, z + 0.5f,
-		        x + -0.5f, y + 0.5f, z + -0.5f,
-		        x + -0.5f, y + -0.5f, z + 0.5f,
-		        x + -0.5f, y + -0.5f, z + -0.5f,
-		        x + -0.5f, y + 0.5f, z + -0.5f
+				x - 0.5f, y + -0.5f, z + 0.5f,
+				x - 0.5f, y + 0.5f, z + 0.5f,
+				x - 0.5f, y + 0.5f, z + -0.5f,
+				
+				x - 0.5f, y + 0.5f, z + -0.5f,
+				x - 0.5f, y + -0.5f, z + -0.5f,
+				x - 0.5f, y + -0.5f, z + 0.5f,
+				
+		        
 		};
 		return (array);
 	}
@@ -61,9 +72,10 @@ public class Factory {
 	{
 		float[] array = {
 				// Right face
-				x + 0.5f, y + -0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + 0.5f,
 				x + 0.5f, y + 0.5f, z + -0.5f,
+				x + 0.5f, y + 0.5f, z + 0.5f,
+				x + 0.5f, y + -0.5f, z + 0.5f,
+				
 				x + 0.5f, y + -0.5f, z + 0.5f,
 				x + 0.5f, y + -0.5f, z + -0.5f,
 				x + 0.5f, y + 0.5f, z + -0.5f
@@ -75,12 +87,13 @@ public class Factory {
 	{
 		float[] array = {
 				// Top face
-				x + -0.5f, y + 0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + -0.5f,
-				x + -0.5f, y + 0.5f, z + 0.5f,
-				x + 0.5f, y + 0.5f, z + -0.5f,
-				x + -0.5f, y + 0.5f, z + -0.5f
+				x + -0.5f, y + 0.5f, z + 0.5f,//01 hr
+				x + 0.5f, y + 0.5f, z + 0.5f,//11  br
+				x + 0.5f, y + 0.5f, z + -0.5f,//10 bl
+				
+				x + -0.5f, y + 0.5f, z + 0.5f,//01 hr
+				x + 0.5f, y + 0.5f, z + -0.5f,//10 bl
+				x + -0.5f, y + 0.5f, z + -0.5f//00 hl
 		};
 		return (array);
 	}
@@ -99,28 +112,67 @@ public class Factory {
 		return (array);
 	}
 	
-	public static float[]	texture_front()
+	public static float[]	texture_top(float id)
 	{
 		float[] array = {
-				0, 0,	0,//texture 0
-		        1, 0,	0,
-		        1, 1,	0,
-				0, 0,	0,
-		        1, 1,	0,
-		        0, 1,	0,
+				0, 0,	id,
+		        1, 0,	id,
+		        1, 1,	id,
+				0, 0,	id,
+		        1, 1,	id,
+		        0, 1,	id,
 		};
 		return (array);
 	}
 	
-	public static float[]	texture_side()
+	public static float[]	texture_back(float id)
 	{
 		float[] array = {
-				0, 0,	2.1f,//texture 0
-		        1, 0,	2.1f,
-		        1, 1,	2.1f,
-				0, 0,	2.1f,
-		        1, 1,	2.1f,
-		        0, 1,	2.1f,
+				1, 1,	id,
+		        1, 0,	id,
+		        0, 0,	id,
+				1, 1,	id,
+		        0, 0,	id,
+		        0, 1,	id,
+		};
+		return (array);
+	}
+	
+	public static float[]	texture_front(float id)
+	{
+		float[] array = {
+				1, 1,	id,
+		        1, 0,	id,
+		        0, 1,	id,
+		        1, 0,	id,
+		        0, 0,	id,
+		        0, 1,	id,
+		};
+		return (array);
+	}
+	
+	public static float[]	texture_right(float id)
+	{
+		float[] array = {
+				0, 0,	id,
+		        1, 0,	id,
+		        1, 1,	id,
+				1, 1,	id,
+		        0, 1,	id,
+		        0, 0,	id,
+		};
+		return (array);
+	}
+	
+	public static float[]	texture_left(float id)
+	{
+		float[] array = {
+				1, 1,	id,
+		        1, 0,	id,
+		        0, 0,	id,
+		        0, 0,	id,
+		        0, 1,	id,
+		        1, 1,	id,
 		};
 		return (array);
 	}
@@ -128,12 +180,12 @@ public class Factory {
 	public static float[]	normal_front()
 	{
 		float[] array = {
-				0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
 		};
 		return (array);
 	}
@@ -141,12 +193,12 @@ public class Factory {
 	public static float[]	normal_back()
 	{
 		float[] array = {
-				0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
-		        0, 0, 1,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
+				0.5f, 0.5f, 0,
 		};
 		return (array);
 	}
@@ -154,12 +206,12 @@ public class Factory {
 	public static float[]	normal_left()
 	{
 		float[] array = {
-				1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
 		};
 		return (array);
 	}
@@ -167,12 +219,12 @@ public class Factory {
 	public static float[]	normal_right()
 	{
 		float[] array = {
-				1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
-		        1, 0, 0,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
+				0, 0.5f, 0.5f,
 		};
 		return (array);
 	}
@@ -180,12 +232,12 @@ public class Factory {
 	public static float[]	normal_top()
 	{
 		float[] array = {
-				0, 1, 0,
-		        0, 1, 0,
-		        0, 1, 0,
-		        0, 1, 0,
-		        0, 1, 0,
-		        0, 1, 0,
+				0.5f, 0, 0.5f,
+				0.5f, 0, 0.5f,
+				0.5f, 0, 0.5f,
+				0.5f, 0, 0.5f,
+				0.5f, 0, 0.5f,
+				0.5f, 0, 0.5f,
 		};
 		return (array);
 	}

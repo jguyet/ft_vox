@@ -3,8 +3,8 @@ package com.vox.loop;
 import java.sql.Time;
 
 public class LoopMotor {
-	public long		graphRate = (long)((double) 1000000000L) / 60L;
-	public long		controllerRate = (long)((double) 1000000000L) / 100L;
+	public long		graphRate = (long)((double) 1000L) / 80L;
+	public long		controllerRate = (long)((double) 1000L) / 80L;
 	public boolean	running = false;
 	
 	private GraphicLoop graphloop;
@@ -22,9 +22,9 @@ public class LoopMotor {
 			return;
 		running = true;
 		graphloop = new GraphicLoop();
-		//controllerloop = new ControllerLoop();
+		controllerloop = new ControllerLoop();
 
-		//controllerloop.start();
+		controllerloop.start();
 		
 		graphloop.run();
 	}
@@ -55,22 +55,17 @@ public class LoopMotor {
 		
 		@Override
 		public void run() {
-
-			long frames = 0;
-			long frameCounter = 0;
-
+			Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 			long lastTime = System.currentTimeMillis();
 
 			while (running) {
 				
-				if ((System.currentTimeMillis() - lastTime) > (1000/60))
+				if ((System.currentTimeMillis() - lastTime) > graphRate)
 				{
-					//System.out.println("HHH  -> " + (System.currentTimeMillis() - lastTime) +  " " + (1000/60));
 					lastTime = System.currentTimeMillis();
 					call(1);
-					//System.out.println("HHH2 -> " + (System.currentTimeMillis() - lastTime) +  " " + (1000/60));
 				}
-				try { Thread.sleep(20); } catch (Exception e) {}
+				try { Thread.sleep(5); } catch (Exception e) {}
 			}
 		}
 	}
@@ -81,6 +76,8 @@ public class LoopMotor {
 		
 		public ControllerLoop() {
 			this._t = new Thread(this);
+			this._t.setPriority(Thread.MAX_PRIORITY);
+			this._t.setDaemon(false);
 		}
 		
 		public void start() {
@@ -89,21 +86,16 @@ public class LoopMotor {
 		
 		@Override
 		public void run() {
+			long lastTime = System.currentTimeMillis();
 
-			long lastTime = getTime();
-			
 			while (running) {
 				
-				long startTime = getTime();
-				long passedTime = startTime - lastTime;
-				
-				if (passedTime > controllerRate)
+				if ((System.currentTimeMillis() - lastTime) > controllerRate)
 				{
-					lastTime = getTime();
+					lastTime = System.currentTimeMillis();
 					call(2);
-				} else {
-					try { Thread.sleep(10); } catch (Exception e) {}
 				}
+				try { Thread.sleep(5); } catch (Exception e) {}
 			}
 		}
 	}

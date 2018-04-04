@@ -1,5 +1,7 @@
 package com.vox.graphics;
 
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 
@@ -49,6 +51,7 @@ public abstract class Scene implements Runnable {
 		glUseProgram(Chunk.shader.id);
 		glUniformMatrix4fv(Chunk.projection_location, false, this.camera.projectionMatrix);
 		glUniformMatrix4fv(Chunk.view_location, false, this.camera.viewMatrix);
+		glUniform3f(glGetUniformLocation(Chunk.shader.id, "light_worldspace"), this.camera.transform.position.x + 100, 50, this.camera.transform.position.z + 100);
 		
 		for (GameObject obj : gameObjects.values())
 		{
@@ -57,30 +60,24 @@ public abstract class Scene implements Runnable {
 				objs_deletes.add(obj);
 				continue ;
 			}
-			if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
-					&& obj.transform.position.z < (this.camera.transform.position.z - 50f))
-				continue ;
-			if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
-					&& obj.transform.position.z > (this.camera.transform.position.z + 50f))
-				continue ;
-			if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
-					&& obj.transform.position.x > (this.camera.transform.position.x + 50f))
-				continue ;
-			if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
-					&& obj.transform.position.x < (this.camera.transform.position.x - 50f))
-				continue ;
-//			if (this.camera.transform.position.x > obj.transform.position.x + this.camera.zFar)
-//				continue ;
-//			if (this.camera.transform.position.x < obj.transform.position.x - this.camera.zFar)
-//				continue ;
-//			if (this.camera.transform.position.z > obj.transform.position.z + this.camera.zFar)
-//				continue ;
-//			if (this.camera.transform.position.z < obj.transform.position.z - this.camera.zFar)
-//				continue ;
 			Chunk chunk = (Chunk)obj.getComponent(Chunk.class);
 			
-			if (chunk != null)
-				chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(), this.camera.transform.position);
+			if (chunk.buffer_index == -1)
+			{
+				if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
+						&& obj.transform.position.z < (this.camera.transform.position.z - (this.camera.transform.position.y)))
+					continue ;
+				if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
+						&& obj.transform.position.z > (this.camera.transform.position.z + (this.camera.transform.position.y)))
+					continue ;
+				if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
+						&& obj.transform.position.x > (this.camera.transform.position.x + (this.camera.transform.position.y)))
+					continue ;
+				if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
+						&& obj.transform.position.x < (this.camera.transform.position.x - (this.camera.transform.position.y)))
+					continue ;
+			}
+			chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(), this.camera.transform.position);
 		}
 		glUseProgram(0);
 		
@@ -104,4 +101,6 @@ public abstract class Scene implements Runnable {
 	}
 	
 	public abstract void draw();
+	
+	public abstract void update();
 }
