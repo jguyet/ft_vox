@@ -38,21 +38,10 @@ public abstract class Scene implements Runnable {
 	{
 		obj.toDelete = true;
 		return (true);
-//		if (this.gameObjects.containsKey(obj.id) == false)
-//			return false;
-//		this.gameObjects.remove(obj.id);
-//		return true;
 	}
 	
 	protected void _draw()
-	{	
-		if (Chunk.shader == null)
-			Chunk.build_shader();
-		glUseProgram(Chunk.shader.id);
-		glUniformMatrix4fv(Chunk.projection_location, false, this.camera.projectionMatrix);
-		glUniformMatrix4fv(Chunk.view_location, false, this.camera.viewMatrix);
-		glUniform3f(glGetUniformLocation(Chunk.shader.id, "light_worldspace"), this.camera.transform.position.x + 100, 50, this.camera.transform.position.z + 100);
-		
+	{
 		for (GameObject obj : gameObjects.values())
 		{
 			if (obj.toDelete)
@@ -79,10 +68,9 @@ public abstract class Scene implements Runnable {
 			}
 			chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(), this.camera.transform.position);
 		}
-		glUseProgram(0);
 		
 		int i = 0;
-		while (objs_deletes.size() > 0 && i < 5)
+		while (objs_deletes.size() > 0 && i < 20)
 		{
 			GameObject obj = objs_deletes.get(0);
 			

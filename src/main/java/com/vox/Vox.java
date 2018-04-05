@@ -142,6 +142,7 @@ public class Vox implements MotorGraphics
 		System.out.println("LWJGL version: " + Version.getVersion());
 		System.out.println("OpenGL version: " + glGetString(GL_VERSION));
 		Factory.load_textures();
+		Factory.load_shaders();
 		Vox.vox.scene = new GameScene();
 		
 		Vox.vox.loop();

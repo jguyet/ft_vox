@@ -11,12 +11,12 @@ import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
 import com.flowpowered.noise.module.source.Perlin;
 import com.vox.Factory;
-import com.vox.shader.Shader;
-import com.vox.utils.Noise;
+import com.vox.graphics.api.VertexArrayObject;
+import com.vox.shader.ChunkShader;
+import com.vox.utils.Block;
 import com.vox.utils.Sizeof;
 import com.vox.utils.Texture;
 import com.vox.utils.Util;
-import com.vox.utils.Vector;
 
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
@@ -28,63 +28,47 @@ import java.util.Random;
 
 public class Chunk extends Component {
 	
-	public static class Block {
-		Vector3f	position;
-		float		texture_top = 0;
-		float		texture_side = 0;
-		float		texture_bottom = 0;
-		
-		public Block(float x, float y, float z)
-		{
-			this.position = new Vector3f(x, y, z);
-		}
-		
-		public Block(Vector3f position)
-		{
-			this.position = position;
-		}
+	public static class NoiseData
+	{
+	    NoiseData(float SpartialScale, float HeightScale, float Octaves)
+	    {
+	    	this.SpartialScale = SpartialScale;
+	    	this.HeightScale = HeightScale;
+	    	this.Octaves = Octaves;
+	    }
+
+	    public float SpartialScale;
+	    public float HeightScale;
+	    public float Octaves;
 	}
 	
-	public static final int SIZE_STATIC_ARRAY = 8;
+	public static final int			SIZE_STATIC_ARRAY	= 4;
+	public static final int			SIZE_WIDTH			= 16;
+	public static final int			SIZE_HEIGHT			= 256;
 	
-	public static final int SIZE_WIDTH = 16;
-	public static final int SIZE_HEIGHT = 256;
+	private static FloatBuffer[]	vertexs_array = new FloatBuffer[SIZE_STATIC_ARRAY];
+	private static FloatBuffer[]	uv_array = new FloatBuffer[SIZE_STATIC_ARRAY];
+	private static FloatBuffer[]	normals_array = new FloatBuffer[SIZE_STATIC_ARRAY];
+	public static boolean[]			buffer_wait = new boolean[SIZE_STATIC_ARRAY];
+	public static int				seed = new Random().nextInt();
+	public static Perlin			perlin;
+	public static NoiseData[]		noises = new NoiseData[3];
 	
-	private int		vao;
-	private int		vbo_vertexs;
-	private int		vbo_uv;
-	private int		vbo_normals;
-	public static Shader	shader = null;
-	
-	public static int vertex_location;
-	public static int uv_location;
-	public static int normal_location;
-	public static int color_location;
-	public static int projection_location;
-	public static int view_location;
-	public static int model_location;
-	public static int[] texture_diffuse_location = new int[9];
-	
-	private static FloatBuffer[] vertexs_array = new FloatBuffer[SIZE_STATIC_ARRAY];
-	private static FloatBuffer[] uv_array = new FloatBuffer[SIZE_STATIC_ARRAY];
-	private static FloatBuffer[] normals_array = new FloatBuffer[SIZE_STATIC_ARRAY];
-	public int buffer_index;
-	public static boolean[] buffer_wait = new boolean[SIZE_STATIC_ARRAY];
-	private int s = 0;
-	
-	private Map<String, Block> blocks = new HashMap<String, Block>();
-	
-	public static int seed = new Random().nextInt();
-	public static Noise noise;
-	public static Perlin perlin;
-	public static boolean wait = false;
-	
-	public boolean vao_builded = false;
+	public int						buffer_index;
+	private Map<String, Block>		blocks = new HashMap<String, Block>();
+	public boolean					vao_builded = false;
+	public VertexArrayObject		vertexArrayObject;
+	public ChunkShader				shader = null;
 	
 	static {
-		noise = new Noise(new Random().nextInt(), 5555, 0.5f);
 		perlin = new Perlin();
+		perlin.setSeed(Chunk.seed);
+		//perlin.setPersistence(5000.0);
+		//perlin.setOctaveCount(1);
 		
+		noises[0] = new NoiseData(100.0f, 80.0f, 1);
+		noises[1] = new NoiseData(12.0f, 60.0f, 1);
+		noises[2] = new NoiseData(5.0f, 10.0f, 1);
 		for (int i = 0; i < SIZE_STATIC_ARRAY; i++)
 		{
 			buffer_wait[i] = false;
@@ -99,9 +83,10 @@ public class Chunk extends Component {
 		}
 	}
 	
-	public Chunk()
+	public Chunk(ChunkShader s)
 	{
-		
+		this.vertexArrayObject = null;
+		this.shader = s;
 	}
 	
 	public void destruct()
@@ -109,24 +94,33 @@ public class Chunk extends Component {
 		blocks.clear();
 		if (this.vao_builded == false)
 			return ;
-		glDeleteVertexArrays(this.vao);
-		glDeleteBuffers(this.vbo_vertexs);
-		glDeleteBuffers(this.vbo_uv);
-		glDeleteBuffers(this.vbo_normals);
+		if (this.vertexArrayObject != null)
+			this.vertexArrayObject.delete();
 	}
 	
-	public void pre_build_chunk()
+	public void pre_build_chunk(int id)
 	{
-		buffer_wait[this.buffer_index] = true;
+		this.buffer_index = id;
+		this.vertexArrayObject = new VertexArrayObject(vertexs_array[id], uv_array[id], normals_array[id]);
+		buffer_wait[id] = true;
 		build_blocks();
 		build_arrays();
 	}
 	
 	private int getNoise(int x, int z)
 	{	
-		int b1 = ((int)(perlin.getValue((double)((double)(x + 10)/350.0f), 0.40, (double)((double)(z + 10)/350.0f)) * 50) + 100);
-		int b2 = ((int)(perlin.getValue((double)((double)(x + 10)/350.0f), 0.40, (double)((double)(z + 10)/350.0f)) * 90) + 100);
-		return (b1);
+		double perlinx = ((x + 10.0)/350.0);
+		double perlinz = ((z + 10.0)/350.0);
+		float height = 0;
+		
+//		for (int i = 0; i < 3; i++)
+//		{
+//			perlin.setLacunarity(noises[i].SpartialScale);;
+//			perlin.setOctaveCount((int) noises[i].Octaves);
+//			height = height + ((float)(perlin.getValue(perlinx, 0.40, perlinz) * noises[i].HeightScale));
+//		}
+		height = ((float)(perlin.getValue(perlinx, 0.40, perlinz) * 90) + 40);
+		return ((int)height);
 	}
 	
 	public void build_blocks()
@@ -144,7 +138,7 @@ public class Chunk extends Component {
 				if (height <= 62)
 				{
 					String key = "" + (x - sx) + "," + (62 - sy) + "," + (z - sz);
-					blocks.put(key, new Block((x - sx), (62 - sy), (z - sz)));
+					blocks.put(key, new Block(this, (x - sx), (62 - sy), (z - sz)));
 					height--;
 				}
 				
@@ -159,7 +153,7 @@ public class Chunk extends Component {
 					if (has_up == false || has_left == false || has_right == false || has_front == false || has_back == false)
 					{
 						String key = "" + (x - sx) + "," + (h - sy) + "," + (z - sz);
-						Block b = new Block(new Vector3f((x - sx), (h - sy), (z - sz)));
+						Block b = new Block(this, new Vector3f((x - sx), (h - sy), (z - sz)));
 						
 						b.texture_top = 0;
 						b.texture_side = 2.1f;//terre
@@ -179,7 +173,7 @@ public class Chunk extends Component {
 						if (h < 70 && h > 64 && has_up == false && Util.getRandomValue(1, 100) > 98)
 						{
 							String key2 = "" + (x - sx) + "," + ((h + 1) - sy) + "," + (z - sz);
-							Block b2 = new Block(new Vector3f((x - sx), ((h + 1) - sy), (z - sz)));
+							Block b2 = new Block(this, new Vector3f((x - sx), ((h + 1) - sy), (z - sz)));
 							
 							b2.texture_top = 6.1f;//cactus
 							b2.texture_side = 5.1f;
@@ -206,9 +200,7 @@ public class Chunk extends Component {
 	
 	public void build_arrays()
 	{	
-		Chunk.vertexs_array[buffer_index].clear();
-		Chunk.uv_array[buffer_index].clear();
-		Chunk.normals_array[buffer_index].clear();
+		this.vertexArrayObject.clear();
 		
 		int sx, sy, sz;
 		sx = (int)this.gameObject.transform.position.x;
@@ -236,45 +228,34 @@ public class Chunk extends Component {
 			
 			if (has_front == false && blocks.containsKey("" + bx + "," + by + "," + (bz + 1)) == false)
 			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_front(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_front(obj.texture_side));
-				normals_array[buffer_index].put(Factory.normal_front());
+				this.vertexArrayObject.add(Factory.block_front(x,y,z),
+						Factory.texture_front(obj.texture_side),
+						Factory.normal_front());
 			}
-			if (has_back == false && blocks.containsKey("" + bx + "," + by + "," + (bz - 1)) == false)//ok
+			if (has_back == false && blocks.containsKey("" + bx + "," + by + "," + (bz - 1)) == false)
 			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_back(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_back(obj.texture_side));
-				normals_array[buffer_index].put(Factory.normal_back());
+				this.vertexArrayObject.add(Factory.block_back(x,y,z),
+						Factory.texture_back(obj.texture_side),
+						Factory.normal_back());
 			}
 			if (has_left == false && blocks.containsKey("" + (bx - 1) + "," + by + "," + bz) == false)
 			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_left(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_left(obj.texture_side));
-				normals_array[buffer_index].put(Factory.normal_left());
+				this.vertexArrayObject.add(Factory.block_left(x,y,z),
+						Factory.texture_left(obj.texture_side),
+						Factory.normal_left());
 			}
 			if (has_right == false && blocks.containsKey("" + (bx + 1) + "," + by + "," + bz) == false)
 			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_right(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_right(obj.texture_side));
-				normals_array[buffer_index].put(Factory.normal_right());
+				this.vertexArrayObject.add(Factory.block_right(x,y,z),
+						Factory.texture_right(obj.texture_side),
+						Factory.normal_right());
 			}
 			if (has_up == false && blocks.containsKey("" + bx + "," + (by + 1) + "," + bz) == false)
 			{
-				this.s += 2;
-				vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
-				uv_array[buffer_index].put(Factory.texture_top(obj.texture_top));
-				normals_array[buffer_index].put(Factory.normal_top());
+				this.vertexArrayObject.add(Factory.block_top(x,y,z),
+						Factory.texture_top(obj.texture_top),
+						Factory.normal_top());
 			}
-//			if (blocks.containsKey("" + bx + "," + (by - 1) + "," + bz) == false)
-//			{
-//				this.s += 2;
-//				vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
-//				uv_array[buffer_index].put(Factory.texture_side());
-//			}
 		}
 		
 		for (Block obj : blocks.values())//water
@@ -289,93 +270,41 @@ public class Chunk extends Component {
 			{
 				continue ;
 			}
-			
-			this.s += 2;
-			vertexs_array[buffer_index].put(Factory.block_top(x,y,z));
-			uv_array[buffer_index].put(Factory.texture_top(-10));
-			normals_array[buffer_index].put(Factory.normal_top());
+			this.vertexArrayObject.add(Factory.block_top(x,y,z),
+					Factory.texture_top(-10),
+					Factory.normal_top());
 		}
 		
-		Chunk.vertexs_array[buffer_index].limit(Chunk.vertexs_array[buffer_index].position());
-		Chunk.uv_array[buffer_index].limit(Chunk.uv_array[buffer_index].position());
-		Chunk.normals_array[buffer_index].limit(Chunk.normals_array[buffer_index].position());
-		vertexs_array[buffer_index].flip();
-		uv_array[buffer_index].flip();
-		normals_array[buffer_index].flip();
-	}
-	
-	public static void build_shader()
-	{
-		if (shader != null)
-			return ;
-		shader = new Shader("assets/shaders/global.vert", "assets/shaders/global.frag");
-		vertex_location = glGetAttribLocation(shader.id, "a_v");
-		normal_location = glGetAttribLocation(shader.id, "a_n");
-		uv_location = glGetAttribLocation(shader.id, "a_uv");
-		color_location = glGetAttribLocation(shader.id, "a_color");
-		projection_location = glGetUniformLocation(shader.id, "P");
-		view_location = glGetUniformLocation(shader.id, "V");
-		model_location = glGetUniformLocation(shader.id, "M");
-		texture_diffuse_location[0] = glGetUniformLocation(shader.id, "u_texture_diffuse[0]");
-		texture_diffuse_location[1] = glGetUniformLocation(shader.id, "u_texture_diffuse[1]");
-		texture_diffuse_location[2] = glGetUniformLocation(shader.id, "u_texture_diffuse[2]");
-		texture_diffuse_location[3] = glGetUniformLocation(shader.id, "u_texture_diffuse[3]");
-		texture_diffuse_location[4] = glGetUniformLocation(shader.id, "u_texture_diffuse[4]");
-		texture_diffuse_location[5] = glGetUniformLocation(shader.id, "u_texture_diffuse[5]");
-		texture_diffuse_location[6] = glGetUniformLocation(shader.id, "u_texture_diffuse[6]");
-		texture_diffuse_location[7] = glGetUniformLocation(shader.id, "u_texture_diffuse[7]");
-		texture_diffuse_location[8] = glGetUniformLocation(shader.id, "u_texture_diffuse[8]");
-		//glBindFragDataLocation(this.shader.id, 0, "o_color");
+		this.vertexArrayObject.flip();
 	}
 	
 	public void build_vao()
 	{
-		this.vao = glGenVertexArrays();
-		glBindVertexArray(this.vao);
-		//VERTEXS
-		vbo_vertexs = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_vertexs);
-		glBufferData(GL_ARRAY_BUFFER, vertexs_array[buffer_index], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(Chunk.vertex_location);
-		glVertexAttribPointer(Chunk.vertex_location, 3, GL_FLOAT, false, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		vbo_uv = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv);
-		glBufferData(GL_ARRAY_BUFFER, uv_array[buffer_index], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(Chunk.uv_location);
-		glVertexAttribPointer(Chunk.uv_location, 3, GL_FLOAT, false, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		vbo_normals = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
-		glBufferData(GL_ARRAY_BUFFER, normals_array[buffer_index], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(Chunk.normal_location);
-		glVertexAttribPointer(Chunk.normal_location, 3, GL_FLOAT, false, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		this.vertexArrayObject.bind(shader.vertex_location, shader.uv_location, shader.normal_location);
 		
-		glUseProgram(Chunk.shader.id);
-		glUniform1i(Chunk.texture_diffuse_location[0], 0);
+		glUseProgram(shader.id);
+		glUniform1i(shader.texture_diffuse_location[0], 0);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_top").id);
-		glUniform1i(Chunk.texture_diffuse_location[1], 1);
+		glUniform1i(shader.texture_diffuse_location[1], 1);
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_side").id);
-		glUniform1i(Chunk.texture_diffuse_location[2], 2);
+		glUniform1i(shader.texture_diffuse_location[2], 2);
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("grass_bottom").id);
-		glUniform1i(Chunk.texture_diffuse_location[3], 3);
+		glUniform1i(shader.texture_diffuse_location[3], 3);
 		glActiveTexture(GL_TEXTURE0 + 3);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("snow_top").id);
-		glUniform1i(Chunk.texture_diffuse_location[4], 4);
+		glUniform1i(shader.texture_diffuse_location[4], 4);
 		glActiveTexture(GL_TEXTURE0 + 4);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("snow_side").id);
-		glUniform1i(Chunk.texture_diffuse_location[5], 5);
+		glUniform1i(shader.texture_diffuse_location[5], 5);
 		glActiveTexture(GL_TEXTURE0 + 5);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("cactus_side").id);
-		glUniform1i(Chunk.texture_diffuse_location[6], 6);
+		glUniform1i(shader.texture_diffuse_location[6], 6);
 		glActiveTexture(GL_TEXTURE0 + 6);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("cactus_top").id);
-		glUniform1i(Chunk.texture_diffuse_location[7], 7);
+		glUniform1i(shader.texture_diffuse_location[7], 7);
 		glActiveTexture(GL_TEXTURE0 + 7);
 		glBindTexture(GL_TEXTURE_2D, Texture.list.get("sand").id);
 		glUseProgram(0);
@@ -386,10 +315,13 @@ public class Chunk extends Component {
 	
 	public void draw(FloatBuffer projection, FloatBuffer view, FloatBuffer model, Vector3f light)
 	{
-		glUniformMatrix4fv(Chunk.model_location, false, model);
+		glUseProgram(this.shader.id);
+		glUniformMatrix4fv(this.shader.projection_location, false, projection);
+		glUniformMatrix4fv(this.shader.view_location, false, view);
+		glUniform3f(glGetUniformLocation(this.shader.id, "light_worldspace"), light.x + 100, 50, light.z + 100);
 		
-		glBindVertexArray(this.vao);
-		glDrawArrays(GL_TRIANGLES, 0, this.s * 3);
-		glBindVertexArray(0);
+		glUniformMatrix4fv(shader.model_location, false, model);
+		this.vertexArrayObject.draw(GL_TRIANGLES);
+		glUseProgram(0);
 	}
 }

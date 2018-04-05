@@ -5,6 +5,10 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
 import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.Random;
@@ -69,4 +73,16 @@ public class Util {
 	    return result;
 
 	}
+	
+	public static String read(String path) {
+		try {
+		FileInputStream stream = new FileInputStream(new File(path));
+        @SuppressWarnings("resource")
+		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        return reader.lines().reduce((acc, line) -> acc+"\n"+line).get();
+		} catch (Exception e)
+		{
+		}
+		return "";
+    }
 }

@@ -39,7 +39,7 @@ void main() {
 	float ambient = 0.95;
 	if (int(texture_id) < 0)
 	{
-		color = vec4(mix(vec3(0.02, 0.19, 0.71), vec3(0.02, 0.58, 0.69), fogFactor), 1);
+		color = vec4(mix(vec3(0.02, 0.19, 0.71), vec3(0.02, 0.58, 0.69), fogFactor), 0.9);
 	}
 	else if (pos.y < 62)
 	{

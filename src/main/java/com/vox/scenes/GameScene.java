@@ -17,12 +17,14 @@ import java.util.Random;
 
 import org.joml.Vector3f;
 
+import com.vox.Factory;
 import com.vox.Vox;
 import com.vox.graphics.Camera;
 import com.vox.graphics.GameObject;
 import com.vox.graphics.Scene;
 import com.vox.graphics.component.Chunk;
 import com.vox.graphics.inputs.Keyboard;
+import com.vox.shader.ChunkShader;
 
 public class GameScene extends Scene {
 	
@@ -44,20 +46,17 @@ public class GameScene extends Scene {
 		this.camera.buildFPSProjection();
 		this.seed = new Random().nextInt();
 		
-		Chunk.build_shader();
 		this.load_chunks(LARGE * 2, LARGE * 2);
 		while (this.chunk_bach.size() > 0 && Chunk.buffer_wait[0] == false)
 		{
 			Chunk c = chunk_bach.get(0);
 			chunk_bach.remove(0);
 			
-			c.buffer_index = 0;
-			c.pre_build_chunk();
+			c.pre_build_chunk(0);
 			c.build_vao();
 			c.vao_builded = true;
 			this.add(c.gameObject);
 			Chunk.buffer_wait[0] = false;
-			//Chunk.buffer_wait[i] = true;
 		}
 		
 		this.t = new Thread(this);
@@ -111,7 +110,7 @@ public class GameScene extends Scene {
 					obj.transform.position.x = cx;
 					obj.transform.position.z = cz;
 					obj.transform.position.y = cy;
-					Chunk c = new Chunk();
+					Chunk c = new Chunk((ChunkShader)Factory.shaders.get("ChunkShader"));
 					obj.addComponent(Chunk.class, c);
 					
 					chunks.put(key, c);
@@ -157,24 +156,29 @@ public class GameScene extends Scene {
 	{
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, 20));
+			this.camera.move(new Vector3f(0, 0, 30));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_D)) {//RIGHT
 			has_moved = true;
-			this.camera.move(new Vector3f(20, 0, 0));
+			this.camera.move(new Vector3f(30, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_A)) {//LEFT
 			has_moved = true;
-			this.camera.move(new Vector3f(-20, 0, 0));
+			this.camera.move(new Vector3f(-30, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_S)) {//DOWN
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, -20));
+			this.camera.move(new Vector3f(0, 0, -30));
 		}
-		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE) && this.camera.transform.position.y < 256f) {//DOWN
+		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
 			has_moved = true;
 			this.camera.transform.position.y += 2f;
 		}
+		
+		//if (this.camera.transform.position.y > 256f)
+		//	this.camera.transform.position.y = 256f;
+		if (this.camera.transform.position.y < 0f)
+			this.camera.transform.position.y = 0f;
 	}
 
 	static long lastTimeo = 0;
@@ -282,8 +286,7 @@ public class GameScene extends Scene {
 					Chunk c = chunk_bach.get(0);
 					chunk_bach.remove(0);
 					
-					c.buffer_index = i;
-					c.pre_build_chunk();
+					c.pre_build_chunk(i);
 					this.objs_drawable.add(c);
 				}
 				i++;

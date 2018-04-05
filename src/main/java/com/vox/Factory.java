@@ -1,15 +1,18 @@
 package com.vox;
 
-import org.joml.Vector3f;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.vox.shader.ChunkShader;
+import com.vox.shader.Shader;
 import com.vox.utils.Texture;
 
 public class Factory {
 	
+	public static Map<String, Shader> shaders = new HashMap<String, Shader>();
+	
 	public static void load_textures()
 	{
-		//Texture.loadTexture3D("grass", 512, 512, "assets/textures/grass_top.jpg", "assets/textures/grass_bottom.jpg", "assets/textures/grass_side.jpg");
-		
 		Texture.loadTexture2D("grass_top", "assets/textures/grass_top.png");
 		Texture.loadTexture2D("grass_side", "assets/textures/soul_sand.png");
 		Texture.loadTexture2D("grass_bottom", "assets/textures/soul_sand.png");
@@ -19,6 +22,11 @@ public class Factory {
 		Texture.loadTexture2D("cactus_top", "assets/textures/cactus_top.png");
 		Texture.loadTexture2D("sand", "assets/textures/sand.png");
 		Texture.loadTexture2D("grass", "assets/textures/grass_one.png");
+	}
+	
+	public static void load_shaders()
+	{
+		shaders.put("ChunkShader", new ChunkShader("assets/shaders/global.vert", "assets/shaders/global.frag"));
 	}
 
 	public static float[]	block_front(float x, float y, float z)
