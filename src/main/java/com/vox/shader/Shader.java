@@ -12,6 +12,7 @@ public abstract class Shader {
 			this.id = Util.createShaderProgram(Util.read(vertex_path), Util.read(fragment_path));
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 	

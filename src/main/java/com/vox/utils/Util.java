@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -74,15 +75,19 @@ public class Util {
 
 	}
 	
-	public static String read(String path) {
+	public static String read(String path) throws RuntimeException {
+		String content = "";
 		try {
-		FileInputStream stream = new FileInputStream(new File(path));
-        @SuppressWarnings("resource")
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        return reader.lines().reduce((acc, line) -> acc+"\n"+line).get();
+			if (new File(path).exists() == false)
+				throw new FileNotFoundException("Failed to load a File " + path);
+			FileInputStream stream = new FileInputStream(new File(path));
+	        @SuppressWarnings("resource")
+			BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+	        content = reader.lines().reduce((acc, line) -> acc+"\n"+line).get();
 		} catch (Exception e)
 		{
+			throw new RuntimeException("Failed to load a File " + path);
 		}
-		return "";
+		return content;
     }
 }
