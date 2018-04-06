@@ -48,14 +48,16 @@ public class GameObject {
 		return (null);
 	}
 	
-	public FloatBuffer	getMatrix()
+	public FloatBuffer	getMatrix(Camera c)
 	{
-		if (lastPosition.equals(this.transform.position))
+		Vector3f position = new Vector3f(this.transform.position.x - c.position.x, this.transform.position.y, this.transform.position.z - c.position.z);
+		
+		if (lastPosition.equals(position))
 			return (this.matrix);
-		lastPosition.x = this.transform.position.x;
-		lastPosition.y = this.transform.position.y;
-		lastPosition.z = this.transform.position.z;
-		new Matrix4f().translate(this.transform.position)
+		lastPosition.x = position.x;
+		lastPosition.y = position.y;
+		lastPosition.z = position.z;
+		new Matrix4f().translate(position)
         //.rotateX(obj.transform.rotation.x)
         //.rotateY(obj.transform.rotation.y)
         //.rotateZ(obj.transform.rotation.z)

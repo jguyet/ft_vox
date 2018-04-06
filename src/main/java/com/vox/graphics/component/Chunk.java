@@ -11,6 +11,7 @@ import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
 import com.flowpowered.noise.module.source.Perlin;
 import com.vox.Factory;
+import com.vox.Vox;
 import com.vox.graphics.api.VertexArrayObject;
 import com.vox.shader.ChunkShader;
 import com.vox.utils.Block;
@@ -42,15 +43,14 @@ public class Chunk extends Component {
 	    public float Octaves;
 	}
 	
-	public static final int			SIZE_STATIC_ARRAY	= 4;
-	public static final int			SIZE_WIDTH			= 16;
+	public static final int			SIZE_STATIC_ARRAY	= 30;
+	public static final int			SIZE_WIDTH			= 32;
 	public static final int			SIZE_HEIGHT			= 256;
 	
 	private static FloatBuffer[]	vertexs_array = new FloatBuffer[SIZE_STATIC_ARRAY];
 	private static FloatBuffer[]	uv_array = new FloatBuffer[SIZE_STATIC_ARRAY];
 	private static FloatBuffer[]	normals_array = new FloatBuffer[SIZE_STATIC_ARRAY];
 	public static boolean[]			buffer_wait = new boolean[SIZE_STATIC_ARRAY];
-	public static int				seed = new Random().nextInt();
 	public static Perlin			perlin;
 	public static NoiseData[]		noises = new NoiseData[3];
 	
@@ -62,9 +62,7 @@ public class Chunk extends Component {
 	
 	static {
 		perlin = new Perlin();
-		perlin.setSeed(Chunk.seed);
-		//perlin.setPersistence(5000.0);
-		//perlin.setOctaveCount(1);
+		perlin.setSeed(Vox.vox.seed);
 		
 		noises[0] = new NoiseData(100.0f, 80.0f, 1);
 		noises[1] = new NoiseData(12.0f, 60.0f, 1);
@@ -72,13 +70,13 @@ public class Chunk extends Component {
 		for (int i = 0; i < SIZE_STATIC_ARRAY; i++)
 		{
 			buffer_wait[i] = false;
-			ByteBuffer bb1 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * Chunk.SIZE_HEIGHT) * (6 * 18)));
+			ByteBuffer bb1 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * 3) * (6 * 18)));
 			vertexs_array[i] = bb1.asFloatBuffer();
 			
-			ByteBuffer bb4 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * Chunk.SIZE_HEIGHT) *  (6 * 18)));
+			ByteBuffer bb4 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * 3) *  (6 * 18)));
 			uv_array[i] = bb4.asFloatBuffer();
 			
-			ByteBuffer bb5 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * Chunk.SIZE_HEIGHT) *  (6 * 18)));
+			ByteBuffer bb5 = BufferUtils.createByteBuffer(Sizeof.Float((Chunk.SIZE_WIDTH * Chunk.SIZE_WIDTH * 3) *  (6 * 18)));
 			normals_array[i] = bb5.asFloatBuffer();
 		}
 	}
@@ -112,13 +110,7 @@ public class Chunk extends Component {
 		double perlinx = ((x + 10.0)/350.0);
 		double perlinz = ((z + 10.0)/350.0);
 		float height = 0;
-		
-//		for (int i = 0; i < 3; i++)
-//		{
-//			perlin.setLacunarity(noises[i].SpartialScale);;
-//			perlin.setOctaveCount((int) noises[i].Octaves);
-//			height = height + ((float)(perlin.getValue(perlinx, 0.40, perlinz) * noises[i].HeightScale));
-//		}
+
 		height = ((float)(perlin.getValue(perlinx, 0.40, perlinz) * 90) + 40);
 		return ((int)height);
 	}
@@ -135,12 +127,8 @@ public class Chunk extends Component {
 			{
 				int height = getNoise(x, z);
 				
-				if (height <= 62)
-				{
-					String key = "" + (x - sx) + "," + (62 - sy) + "," + (z - sz);
-					blocks.put(key, new Block(this, (x - sx), (62 - sy), (z - sz)));
-					height--;
-				}
+				if (height < 0)
+					height = 1;
 				
 				for (int h = (height + 1); h > 0; h--)
 				{
@@ -170,7 +158,7 @@ public class Chunk extends Component {
 							b.texture_side = 2.1f;//terre
 						}
 						
-						if (h < 70 && h > 64 && has_up == false && Util.getRandomValue(1, 100) > 98)
+						if (h < 70 && h > 64 && has_up == false && has_right == false && has_front == false && has_back == false && has_left == false && Util.getRandomValue(1, 100) > 98)
 						{
 							String key2 = "" + (x - sx) + "," + ((h + 1) - sy) + "," + (z - sz);
 							Block b2 = new Block(this, new Vector3f((x - sx), ((h + 1) - sy), (z - sz)));
@@ -223,9 +211,6 @@ public class Chunk extends Component {
 			boolean has_front = getNoise(sx + (bx), sz + (bz + 1)) > (sy + by);
 			boolean has_back = getNoise(sx + (bx), sz + (bz - 1)) > (sy + by);
 			
-			if ((sy + by) == 62)
-				continue ;
-			
 			if (has_front == false && blocks.containsKey("" + bx + "," + by + "," + (bz + 1)) == false)
 			{
 				this.vertexArrayObject.add(Factory.block_front(x,y,z),
@@ -256,23 +241,6 @@ public class Chunk extends Component {
 						Factory.texture_top(obj.texture_top),
 						Factory.normal_top());
 			}
-		}
-		
-		for (Block obj : blocks.values())//water
-		{
-			int by = (int)obj.position.y;
-			float x = obj.position.x;
-			float y = obj.position.y;
-			float z = obj.position.z;
-			
-			
-			if ((sy + by) != 62)
-			{
-				continue ;
-			}
-			this.vertexArrayObject.add(Factory.block_top(x,y,z),
-					Factory.texture_top(-10),
-					Factory.normal_top());
 		}
 		
 		this.vertexArrayObject.flip();

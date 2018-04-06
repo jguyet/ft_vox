@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.vox.shader.ChunkShader;
 import com.vox.shader.Shader;
+import com.vox.shader.WaterShader;
 import com.vox.utils.Texture;
 
 public class Factory {
@@ -27,6 +28,7 @@ public class Factory {
 	public static void load_shaders()
 	{
 		shaders.put("ChunkShader", new ChunkShader("assets/shaders/global.vert", "assets/shaders/global.frag"));
+		shaders.put("WaterShader", new WaterShader("assets/shaders/water.vert", "assets/shaders/water.frag"));
 	}
 
 	public static float[]	block_front(float x, float y, float z)
@@ -116,6 +118,21 @@ public class Factory {
 				x + -0.5f, y - 0.5f, z + 0.5f,
 				x + 0.5f, y - 0.5f, z + -0.5f,
 				x + -0.5f, y - 0.5f, z + -0.5f
+		};
+		return (array);
+	}
+	
+	public static float[]	plane(float large, float x, float y, float z)
+	{
+		float[] array = {
+				// Top face
+				x + -large, y, z + large,//01 hr
+				x + large, y, z + large,//11  br
+				x + large, y, z + -large,//10 bl
+				
+				x + -large, y, z + large,//01 hr
+				x + large, y, z + -large,//10 bl
+				x + -large, y, z + -large//00 hl
 		};
 		return (array);
 	}

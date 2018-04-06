@@ -14,6 +14,8 @@ import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
 import com.vox.graphics.component.Chunk;
+import com.vox.graphics.component.Component;
+import com.vox.graphics.component.Water;
 
 public abstract class Scene implements Runnable {
 	
@@ -49,24 +51,34 @@ public abstract class Scene implements Runnable {
 				objs_deletes.add(obj);
 				continue ;
 			}
-			Chunk chunk = (Chunk)obj.getComponent(Chunk.class);
+			Component c = obj.getComponent(Chunk.class);
 			
-			if (chunk.buffer_index == -1)
+			if (c instanceof Chunk)
 			{
-				if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
-						&& obj.transform.position.z < (this.camera.transform.position.z - (this.camera.transform.position.y)))
-					continue ;
-				if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
-						&& obj.transform.position.z > (this.camera.transform.position.z + (this.camera.transform.position.y)))
-					continue ;
-				if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
-						&& obj.transform.position.x > (this.camera.transform.position.x + (this.camera.transform.position.y)))
-					continue ;
-				if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
-						&& obj.transform.position.x < (this.camera.transform.position.x - (this.camera.transform.position.y)))
-					continue ;
+				Chunk chunk = (Chunk)c;
+				if (chunk.buffer_index == -1)
+				{
+					if (this.camera.transform.rotation.y > 130 && this.camera.transform.rotation.y < 230
+							&& obj.transform.position.z < (this.camera.transform.position.z - (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 300 || this.camera.transform.rotation.y < 50)
+							&& obj.transform.position.z > (this.camera.transform.position.z + (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 220 && this.camera.transform.rotation.y < 320)
+							&& obj.transform.position.x > (this.camera.transform.position.x + (this.camera.transform.position.y)))
+						continue ;
+					if ((this.camera.transform.rotation.y > 40 && this.camera.transform.rotation.y < 130)
+							&& obj.transform.position.x < (this.camera.transform.position.x - (this.camera.transform.position.y)))
+						continue ;
+				}
+				chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(this.camera), this.camera.transform.position);
 			}
-			chunk.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(), this.camera.transform.position);
+//			else if (c instanceof Water)
+//			{
+//				Water water = (Water)c;
+//				
+//				water.draw(this.camera.projectionMatrix, this.camera.viewMatrix, obj.getMatrix(this.camera), this.camera.transform.position);
+//			}
 		}
 		
 		int i = 0;

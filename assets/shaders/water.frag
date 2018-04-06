@@ -12,7 +12,7 @@ out vec4 color;
 uniform sampler2D u_texture_diffuse[16];
 
 const vec3 fogColor = vec3(1.0, 1.0, 1.0);
-const float FogDistFactor = 0.012;
+const float FogDistFactor = 0.008;
 const float FogDensity = 0.01;
 
 const vec3 normalColor = vec3(0.1, 0.1, 0.1);
@@ -35,17 +35,6 @@ void main() {
 	normalDist = exp(dot(n2, l2) / 3);
 	normalFactor = 1.0 / exp(normalDist * normalDensity);
 	normalFactor = clamp(normalFactor, 0, 1.0);
-	
-	float ambient = 0.95;
-	if (pos.y < 62)
-	{
-		normalDist = exp(dot(n2, l2) / 10);
-		normalFactor = 1.0 / exp(normalDist * normalDensity);
-		normalFactor = clamp(normalFactor, 0, 1.0);
-		color = vec4(mix(vec3(0.02, 0.19, 0.71), mix(normalColor, texture(u_texture_diffuse[int(texture_id)], v_uv.xy).rgb, normalFactor), fogFactor * (pos.y / 62)), 1);
-	}
-	else
-	{	
-		color = vec4(mix(normalColor, mix(fogColor, texture(u_texture_diffuse[int(texture_id)], v_uv.xy).rgb, fogFactor), normalFactor), 1);
-	}
+    
+	color = vec4(mix(fogColor, vec3(0.02, 0.58, 0.69), fogFactor), 0.7);
 }

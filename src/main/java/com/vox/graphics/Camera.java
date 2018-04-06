@@ -15,6 +15,7 @@ public class Camera {
 	public FloatBuffer	projectionMatrix;
 	public FloatBuffer	viewMatrix;
 	public Transform	transform;
+	public Vector3f		position;
 	
 	private Matrix4f	view;
 	
@@ -27,6 +28,7 @@ public class Camera {
 	public Camera(Vector3f position, Vector3f rotation)
 	{
 		initialize();
+		this.position = new Vector3f(position.x,position.y,position.z);
 		this.transform.position = position;
 		this.transform.rotation = rotation;
 	}
@@ -108,7 +110,11 @@ public class Camera {
 		Matrix4f rotate = matPitch.mul(matYaw).mul(matRoll);
 		
 		Matrix4f translate = new Matrix4f();
-		translate = translate.translate(new Vector3f(this.transform.position).negate());
+		this.position.x = this.transform.position.x;
+		this.position.y = this.transform.position.y;
+		this.position.z = this.transform.position.z;
+		//translate = translate.translate(new Vector3f(this.transform.position).negate());
+		translate = translate.translate(new Vector3f(0,this.position.y,0).negate());
 		this.view = rotate.mul(translate);
 		this.view.get(this.viewMatrix);
 	}

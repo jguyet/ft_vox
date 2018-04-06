@@ -10,6 +10,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 
 import com.vox.graphics.Scene;
@@ -35,6 +36,8 @@ public class Vox implements MotorGraphics
 	public static boolean running;
 	
 	private LoopMotor motor;
+	
+	public int seed;
 
 	public Vox()
 	{
@@ -59,7 +62,7 @@ public class Vox implements MotorGraphics
 		glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	}
 
-	public void build_window()
+	public void build_window(boolean fullscreen)
 	{
 		GLFWErrorCallback.createPrint(System.err).set();
 		if (!glfwInit())
@@ -71,7 +74,22 @@ public class Vox implements MotorGraphics
 	    glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
 	    //glfwWindowHint(GLFW_AUTO_ICONIFY, GL_TRUE);
 		this.build_context();
-		window = glfwCreateWindow(this.screen.width, this.screen.height, "ft_vox", NULL, NULL);
+		
+		long monitor = 0;
+		
+		if (fullscreen)
+		{
+			monitor = glfwGetPrimaryMonitor();
+			GLFWVidMode Mode = glfwGetVideoMode(monitor);
+		    glfwWindowHint(GLFW_RED_BITS, Mode.redBits());
+		    glfwWindowHint(GLFW_GREEN_BITS, Mode.greenBits());
+		    glfwWindowHint(GLFW_BLUE_BITS, Mode.blueBits());
+		    glfwWindowHint(GLFW_ALPHA_BITS, Mode.blueBits());
+		    glfwWindowHint(GLFW_REFRESH_RATE, Mode.refreshRate());
+		    this.screen.height = Mode.height();
+		    this.screen.width = Mode.width();
+		}
+		window = glfwCreateWindow(this.screen.width, this.screen.height, "ft_vox", monitor, NULL);
 		if ( window == NULL )
 			throw new RuntimeException("Failed to create the GLFW window");
 		glfwMakeContextCurrent(window);
@@ -105,7 +123,7 @@ public class Vox implements MotorGraphics
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glClearColor(0.02f, 0.54f, 0.69f, 0.0f);
+		glClearColor(0.90f, 0.90f, 0.90f, 0.0f);
 		
 		this.motor = new LoopMotor(this);
 		this.motor.start();
@@ -135,9 +153,29 @@ public class Vox implements MotorGraphics
 	}
 
 	public static void main(String[] args) {
-		Vox.vox = new Vox();
 		
-		Vox.vox.build_window();
+		boolean fullscreen = false;
+		Vox.vox = new Vox();
+		for (String arg : args)
+		{
+			if (arg.contains("-seed:") && arg.length() > "-seed:".length())
+			{
+				Vox.vox.seed = 0;
+				
+				try {
+					Vox.vox.seed = Integer.parseInt(arg.split("\\-seed\\:")[1]);
+				} catch (Exception e)
+				{
+					System.out.println("arg[0] seed is not a number");
+				}
+			}
+			else if (arg.equalsIgnoreCase("-fullscreen"))
+			{
+				fullscreen = true;
+			}
+		}
+		System.out.println("seed = " + Vox.vox.seed);
+		Vox.vox.build_window(fullscreen);
 		Vox.vox.build_inputs();
 		System.out.println("LWJGL version: " + Version.getVersion());
 		System.out.println("OpenGL version: " + glGetString(GL_VERSION));

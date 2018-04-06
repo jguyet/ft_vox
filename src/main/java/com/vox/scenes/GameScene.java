@@ -6,7 +6,11 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_S;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_W;
 import static org.lwjgl.glfw.GLFW.glfwSetCursorPos;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
+import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL11.*;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -15,7 +19,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
 
 import com.vox.Factory;
 import com.vox.Vox;
@@ -23,8 +29,10 @@ import com.vox.graphics.Camera;
 import com.vox.graphics.GameObject;
 import com.vox.graphics.Scene;
 import com.vox.graphics.component.Chunk;
+import com.vox.graphics.component.Water;
 import com.vox.graphics.inputs.Keyboard;
 import com.vox.shader.ChunkShader;
+import com.vox.shader.WaterShader;
 
 public class GameScene extends Scene {
 	
@@ -35,14 +43,15 @@ public class GameScene extends Scene {
 	private boolean						has_moved = true;
 	private double						seed;
 	private long						lasttime = 0;
+	private Water						water;
 	
-	private static final int			LARGE = 10;
+	private static final int			LARGE = 6;
 	
 	public GameScene()
 	{
 		glfwSetCursorPos(Vox.vox.window, Vox.vox.screen.middleWidth, Vox.vox.screen.middleHeight);
-		this.camera = new Camera(new Vector3f(5000.0f, 5.0f, 5000.0f), new Vector3f(37,316,0));
-		this.camera.setProjection(50.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 1000f);
+		this.camera = new Camera(new Vector3f(5000.0f, 120.0f, 5000.0f), new Vector3f(37,316,0));
+		this.camera.setProjection(80.0f, Vox.vox.screen.width, Vox.vox.screen.height, 0.1f, 640f);
 		this.camera.buildFPSProjection();
 		this.seed = new Random().nextInt();
 		
@@ -58,6 +67,15 @@ public class GameScene extends Scene {
 			this.add(c.gameObject);
 			Chunk.buffer_wait[0] = false;
 		}
+		
+		GameObject obj = new GameObject();
+		obj.transform.position.x = 0;
+		obj.transform.position.z = 0;
+		obj.transform.position.y = 62;
+		this.water = new Water((WaterShader)Factory.shaders.get("WaterShader"));
+		obj.addComponent(Chunk.class, this.water);
+		this.water.pre_build_water();
+		this.water.build_vao();
 		
 		this.t = new Thread(this);
 		this.t.setPriority(Thread.MIN_PRIORITY);
@@ -146,8 +164,10 @@ public class GameScene extends Scene {
 		{
 			Chunk c = entry.getValue();
 			
-			c.gameObject.toDelete = true;
 			this.chunks_delatable.remove(0);
+			if (c.buffer_index != -1)
+				continue ;
+			c.gameObject.toDelete = true;
 			this.chunks.remove(entry.getKey());
 		}
 	}
@@ -156,42 +176,37 @@ public class GameScene extends Scene {
 	{
 		if (Keyboard.keyboard.getKey(GLFW_KEY_W)) {//UP
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, 30));
+			this.camera.move(new Vector3f(0, 0, 20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_D)) {//RIGHT
 			has_moved = true;
-			this.camera.move(new Vector3f(30, 0, 0));
+			this.camera.move(new Vector3f(20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_A)) {//LEFT
 			has_moved = true;
-			this.camera.move(new Vector3f(-30, 0, 0));
+			this.camera.move(new Vector3f(-20, 0, 0));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_S)) {//DOWN
 			has_moved = true;
-			this.camera.move(new Vector3f(0, 0, -30));
+			this.camera.move(new Vector3f(0, 0, -20));
 		}
 		if (Keyboard.keyboard.getKey(GLFW_KEY_SPACE)) {//DOWN
 			has_moved = true;
 			this.camera.transform.position.y += 2f;
 		}
-		
-		//if (this.camera.transform.position.y > 256f)
-		//	this.camera.transform.position.y = 256f;
-		if (this.camera.transform.position.y < 0f)
-			this.camera.transform.position.y = 0f;
 	}
 
 	static long lastTimeo = 0;
 	
 	@Override
 	public void draw() {
+		glEnable(GL_CULL_FACE);
 		this.camera.buildFPSProjection();
 		this._draw();
 		updateFps();
 		
 		boolean has_draw = false;
-		int max = 0;
-		while (objs_drawable.size() > 0)// && max < 40 && System.currentTimeMillis() - lastTimeo > (1000L / 30L))
+		while (objs_drawable.size() > 0)
 		{
 			Chunk c = objs_drawable.get(0);
 			if (c == null)
@@ -201,18 +216,22 @@ public class GameScene extends Scene {
 			this.add(c.gameObject);
 			objs_drawable.remove(c);
 			has_draw = true;
-			max++;
 		}
 		if (has_draw) {
 			lastTimeo = System.currentTimeMillis();
 		}
+		glDisable(GL_CULL_FACE);
+		FloatBuffer		matrix = BufferUtils.createFloatBuffer(16);
+		new Matrix4f().translate(new Vector3f(0,61.9f,0))
+        .get(matrix);
+		this.water.draw(this.camera.projectionMatrix, this.camera.viewMatrix, matrix, this.camera.transform.position);
 	}
 	
 	@Override
 	public void update() {
 		this.move_camera();
 		
-		updateFFps();
+		//updateFFps();
 	}
 	
 	static long lastTime = 0;
@@ -225,41 +244,41 @@ public class GameScene extends Scene {
 			lastTime = System.currentTimeMillis();
 			fps = fpsCount;
 			fpsCount = 0;
-			System.out.println("FPS          : " + fps);
+			System.out.println("FPS : " + fps);
 		}
 		fpsCount++;
 	}
 	
 	
-	static long lastfTime = 0;
-	static int ffpsCount = 0;
-	static int ffps = 0;
-	
-	void						updateFFps()
-	{
-		if (lastfTime == 0 || System.currentTimeMillis() > (long)(lastfTime + 1000L)) {
-			lastfTime = System.currentTimeMillis();
-			ffps = ffpsCount;
-			ffpsCount = 0;
-			System.out.println("FFPS          : " + ffps);
-		}
-		ffpsCount++;
-	}
-	
-	static long lastpTime = 0;
-	static int pfpsCount = 0;
-	static int pfps = 0;
-	
-	void						updatePFps()
-	{
-		if (lastpTime == 0 || System.currentTimeMillis() > (long)(lastpTime + 1000L)) {
-			lastpTime = System.currentTimeMillis();
-			pfps = pfpsCount;
-			pfpsCount = 0;
-			System.out.println("PFPS          : " + pfps);
-		}
-		pfpsCount++;
-	}
+//	static long lastfTime = 0;
+//	static int ffpsCount = 0;
+//	static int ffps = 0;
+//	
+//	void						updateFFps()
+//	{
+//		if (lastfTime == 0 || System.currentTimeMillis() > (long)(lastfTime + 1000L)) {
+//			lastfTime = System.currentTimeMillis();
+//			ffps = ffpsCount;
+//			ffpsCount = 0;
+//			System.out.println("FFPS          : " + ffps);
+//		}
+//		ffpsCount++;
+//	}
+//	
+//	static long lastpTime = 0;
+//	static int pfpsCount = 0;
+//	static int pfps = 0;
+//	
+//	void						updatePFps()
+//	{
+//		if (lastpTime == 0 || System.currentTimeMillis() > (long)(lastpTime + 1000L)) {
+//			lastpTime = System.currentTimeMillis();
+//			pfps = pfpsCount;
+//			pfpsCount = 0;
+//			System.out.println("PFPS          : " + pfps);
+//		}
+//		pfpsCount++;
+//	}
 
 	@Override
 	public void run() {
@@ -267,15 +286,15 @@ public class GameScene extends Scene {
 		
 		while (Vox.running == true)
 		{
-			this.load_chunks(LARGE, LARGE * 2);
+			this.load_chunks(3, LARGE * 2);
 			if (this.chunk_bach.size() > 0)
 			{
-				ll = LARGE;
+				ll = 3;
 			}
 			else {
-				if (LARGE + ll < LARGE * 2)
-					ll++;
-				this.load_chunks(LARGE + ll, LARGE * 2);
+				if (3 + ll < LARGE * 2)
+					ll += 1;
+				this.load_chunks(3 + ll, LARGE * 2);
 			}
 			
 			int i = 0;
@@ -284,15 +303,15 @@ public class GameScene extends Scene {
 				if (this.chunk_bach.size() > 0 && Chunk.buffer_wait[i] == false)
 				{
 					Chunk c = chunk_bach.get(0);
-					chunk_bach.remove(0);
 					
 					c.pre_build_chunk(i);
 					this.objs_drawable.add(c);
+					chunk_bach.remove(0);
 				}
 				i++;
 			}
 			try { Thread.sleep(10); } catch (InterruptedException e) {}
-			updatePFps();
+			//updatePFps();
 		}
 	}
 	
